@@ -47,6 +47,12 @@ under [RF: the Bounty Hunter licence](#rf-the-bounty-hunter-licence) (17.1 RF ba
 reloads, horses, keepsakes, program cards, the Vault, seed words, trophies and the Cold Wallet) is simulated in-game and pays no
 RF; the keepsake drop odds are in `KEEPSAKES.md`.
 
+**Economy potential:** the SDK bridge offers a single consumable at one price, so the licence is the only thing sold for RF. With
+a modified or extended SDK that supports more items and prices, the game is ready to sell many more assets and cosmetics for RF:
+Trojan Horses (including the Shiny Golden one), laser reloads, the keepsake cosmetics (hats, masks, capes, off-hand items and
+pets), program cards and gas vouchers, and extra hunts or licence tiers. Cosmetics and upgrades without an RF redemption promise
+need no prize reserve, and keepsakes are already designed to be minted into the Friend's wallet.
+
 **Checks** (SDK v0.1.4, from the SDK root): `npm test` (116 pass, 2 skipped: the optional Foundry contract tests), `npm run
 typecheck`, `npm run check:games` (all valid), `npm run check:browser` (16 pass), `npx tsc -p games/rarefriend-outlaw/tsconfig.json`
 and `npx friendsdk test ./games/rarefriend-outlaw` (pass).
