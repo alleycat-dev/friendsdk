@@ -1,0 +1,107 @@
+/* Hardware Wallet practice page: a plain frame around the 960 × 640 stage (the overlay styles come in with the game module). */
+
+:root {
+  --practice-bg: #f4f1ea;
+  --practice-ink: #111;
+  --practice-muted: #555;
+  --practice-line: #111;
+  --practice-won: #c8f2c2;
+  --practice-lost: #f7c4c0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --practice-bg: #1b1b1b;
+    --practice-ink: #eee;
+    --practice-muted: #aaa;
+    --practice-line: #eee;
+  }
+}
+:root[data-theme="dark"] {
+  --practice-bg: #1b1b1b;
+  --practice-ink: #eee;
+  --practice-muted: #aaa;
+  --practice-line: #eee;
+}
+
+body {
+  margin: 0;
+  background: var(--practice-bg);
+  color: var(--practice-ink);
+  font: 15px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.practice {
+  max-width: 964px;
+  margin: 0 auto;
+  padding: 16px;
+}
+.practice h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+.practice header p,
+.practice-tier {
+  margin: 0 0 12px;
+  color: var(--practice-muted);
+}
+.practice-tier strong {
+  color: var(--practice-ink);
+}
+.practice nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.practice nav button {
+  padding: 6px 12px;
+  border: 2px solid var(--practice-line);
+  background: transparent;
+  color: var(--practice-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.practice nav button[aria-pressed="true"] {
+  background: var(--practice-won);
+  color: #111;
+}
+/* The stage is the game's full 960 × 640; on narrower screens it scrolls sideways inside its own box, never the page. */
+.practice-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.practice-stage {
+  width: 960px;
+  height: 640px;
+  box-sizing: border-box;
+  border: 2px solid var(--practice-line);
+  background: #fff;
+}
+.practice-log h2 {
+  margin: 16px 0 6px;
+  font-size: 17px;
+}
+.practice-log h2 small {
+  margin-left: 8px;
+  color: var(--practice-muted);
+  font-weight: normal;
+}
+.practice-log ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.practice-log li {
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  color: #111;
+}
+.practice-log li.won {
+  background: var(--practice-won);
+}
+.practice-log li.lost {
+  background: var(--practice-lost);
+}
+.practice-log li small {
+  display: block;
+  color: #333;
+}

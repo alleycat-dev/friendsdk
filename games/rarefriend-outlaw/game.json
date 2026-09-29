@@ -1,0 +1,14 @@
+{
+  "name": "Rarefriend Outlaw",
+  "consumable": "Bounty Hunter licence",
+  "price": "20000000000000000000",
+  "outcomes": [
+    { "name": "Empty", "chanceBps": 5000, "reward": "0" },
+    { "name": "Dust", "chanceBps": 3000, "reward": "10000000000000000000" },
+    { "name": "Coins", "chanceBps": 1300, "reward": "20000000000000000000" },
+    { "name": "Stack", "chanceBps": 500, "reward": "60000000000000000000" },
+    { "name": "Cache", "chanceBps": 150, "reward": "200000000000000000000" },
+    { "name": "Vault", "chanceBps": 45, "reward": "1000000000000000000000" },
+    { "name": "Jackpot", "chanceBps": 5, "reward": "2000000000000000000000" }
+  ]
+}

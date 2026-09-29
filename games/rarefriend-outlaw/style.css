@@ -1,0 +1,642 @@
+.outlaw-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  padding: 24px;
+  text-align: center;
+  color: #000;
+  background: #fff;
+  font: 14px/1.4 monospace;
+}
+
+.outlaw-game {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  color: #000;
+  background: #fff;
+  font: 14px/1.4 monospace;
+}
+
+.outlaw-world {
+  position: absolute;
+  inset: 0;
+}
+
+.outlaw-canvas,
+.outlaw-wallet,
+.outlaw-wallet canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  touch-action: none;
+  outline-offset: -3px;
+}
+
+/* The wallet board is drawn at the resolution it is shown at, with vector icons: smooth it, do not keep pixels square. */
+.outlaw-wallet canvas {
+  image-rendering: auto;
+}
+
+/* The wallet's bottom row, between the readout (bottom left) and the "?" button (bottom right), below the board's hover panel. */
+.outlaw-wallet-controls {
+  position: absolute;
+  left: 220px;
+  right: 220px;
+  bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.outlaw-wallet-controls p {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: center;
+  color: #f5e9d0;
+  font-size: 12px;
+}
+
+.outlaw-toast {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 14px;
+  border: 2px solid #000;
+  background: #c8f2c2;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+/* Neutral or good news on light green; hits, robberies, escapes and failed actions on light red. */
+.outlaw-toast-good {
+  background: #c8f2c2;
+}
+
+.outlaw-toast-bad {
+  background: #f7c4c0;
+}
+
+.outlaw-canvas:focus-visible {
+  outline: 3px solid #000;
+}
+
+.outlaw-guide {
+  position: absolute;
+  bottom: 50px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.outlaw-guide p {
+  margin: 0;
+  padding: 4px 8px;
+  background: #fff;
+  font-size: 11px;
+}
+
+.outlaw-guide button {
+  pointer-events: auto;
+  background: #c8f2c2;
+  color: #111;
+}
+
+.outlaw-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  background: #fff;
+}
+
+.outlaw-hud {
+  position: absolute;
+  inset: 14px 16px auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.outlaw-hud span {
+  margin-right: auto;
+  padding: 8px;
+  border: 1px solid #000;
+  background: #fff;
+}
+
+.outlaw-hud button {
+  pointer-events: auto;
+}
+
+.outlaw-game button {
+  font: inherit;
+  cursor: pointer;
+  padding: 9px 13px;
+  border: 2px solid #000;
+  background: #fff;
+  color: #000;
+}
+
+.outlaw-game button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.outlaw-hint {
+  position: absolute;
+  bottom: 50px;
+  left: 16px;
+  right: 16px;
+  margin: 0;
+  text-align: center;
+  background: #fff;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.outlaw-game label {
+  display: block;
+  margin: 16px 0;
+}
+
+.outlaw-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.outlaw-item small {
+  display: block;
+  margin-top: 3px;
+}
+
+/* Primary buttons are light green with dark text, like the good-news toasts (no yellow anywhere in messages or buttons). */
+.outlaw-game button.rf-frame-primary {
+  background: #c8f2c2;
+  color: #111;
+}
+
+/* Warnings inside dialogs, such as the hardware wallet's kill switch, on light red. */
+.outlaw-alert {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 2px solid #000;
+  background: #f7c4c0;
+  font-weight: bold;
+}
+
+.outlaw-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+@media (max-width: 520px) {
+  .outlaw-hud { inset: 8px 8px auto; gap: 5px; font-size: 10px; }
+  .outlaw-hud button { padding: 7px; }
+  .outlaw-hud span { padding: 6px; }
+  .outlaw-hint { bottom: 44px; font-size: 10px; }
+}
+
+.outlaw-poster {
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.outlaw-poster canvas {
+  max-width: 100%;
+  image-rendering: pixelated;
+}
+
+.outlaw-poster figcaption {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+/* The wallet's "?" button, bottom right, and the explanation page it opens over the board. */
+.outlaw-wallet-help-button {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #f5e9d0;
+  border-radius: 50%;
+  background: #160b08;
+  color: #f5e9d0;
+  font: bold 20px/1 ui-monospace, monospace;
+  cursor: pointer;
+}
+.outlaw-wallet-help-button:hover,
+.outlaw-wallet-help-button:focus-visible {
+  background: #2a1a12;
+}
+.outlaw-wallet-help {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  /* The runtime's toolbar (Local preview, Friend, Friend wallet) floats over the frame's bottom-left corner from outside the game,
+     which cannot hide it: the extra bottom room lets the last lines scroll clear of it. */
+  padding: 20px 28px 72px;
+  background: #160b08;
+  color: #f5e9d0;
+  font: 13px/1.4 ui-monospace, monospace;
+}
+.outlaw-wallet-help h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  text-align: center;
+}
+.outlaw-wallet-help > p {
+  max-width: 760px;
+  margin: 0 auto 10px;
+  text-align: center;
+}
+.outlaw-wallet-help h3 {
+  margin: 12px 0 6px;
+  font-size: 14px;
+  color: #d9b048;
+}
+.outlaw-wallet-help ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.outlaw-wallet-help li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.outlaw-wallet-help li canvas {
+  position: static;
+  inset: auto;
+  display: block;
+  flex: none;
+  width: 72px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+.outlaw-wallet-help li strong {
+  display: block;
+}
+.outlaw-wallet-help > button {
+  display: block;
+  margin: 16px auto 0;
+}
+
+/* Give up sits in the top right corner of the wallet screen while a board is open. */
+.outlaw-wallet-giveup {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+.outlaw-wallet-giveup-low {
+  top: 70px;
+}
+/* In the game the runtime's Friend and wallet bar holds the bottom edge, so a finished board's result sits above it. */
+.outlaw-wallet-controls-high {
+  bottom: 60px;
+}
+
+/* The board's hover panel: HTML over the canvas so its lettering stays sharp at any frame size. */
+.outlaw-wallet-tip {
+  position: absolute;
+  left: 25%;
+  width: 50%;
+  box-sizing: border-box;
+  padding: 7px 12px 8px;
+  color: #000;
+  background: #fff;
+  border: 2px solid #000;
+  font: 500 13px/18px ui-monospace, monospace;
+  pointer-events: none;
+}
+.outlaw-wallet-tip[hidden] {
+  display: none;
+}
+
+/* The Cold Storage's mint terminal: whole rows are clickable, a faint blue tint on the chosen ones, and a quiet note. */
+.outlaw-game .outlaw-mint-row {
+  display: flex;
+  margin: 0;
+  padding: 8px 6px;
+  cursor: pointer;
+}
+.outlaw-game .outlaw-mint-row + .outlaw-mint-row {
+  border-top: none;
+}
+.outlaw-game section h3 {
+  margin: 14px 0 4px;
+}
+.outlaw-mint-row:has(input:checked) {
+  background: #e6f2fb;
+}
+.outlaw-mint-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: #5d9cc4;
+}
+.outlaw-mint-note {
+  color: #2b5a80;
+  font-size: 12px;
+}
+
+/* A cracked wallet's contents, over the finished board: RF from its charges, OP, finds. A jackpot wallet glows gold. */
+.outlaw-haul {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 2px solid #f5e9d0;
+  background: #1f130d;
+  color: #f5e9d0;
+  font-size: 12px;
+  text-align: center;
+}
+.outlaw-haul-jackpot {
+  border-color: #d9b048;
+  background: #2a1f08;
+  box-shadow: 0 0 0 2px #8a6a1a, 0 0 18px #d9b048;
+}
+.outlaw-jackpot {
+  color: #ffd75e;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  animation: outlaw-jackpot-pulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes outlaw-jackpot-pulse {
+  from { text-shadow: 0 0 2px #8a6a1a; }
+  to { text-shadow: 0 0 12px #ffd75e; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .outlaw-jackpot { animation: none; }
+}
+
+.outlaw-still { animation: none; }
+
+/* The REWARDS frame over a cracked board: falling code behind, the wallet in the middle, the items around it on rarity halos. */
+.outlaw-rewards {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  background: #000;
+  color: #e8ffe8;
+  font: 13px/1.3 ui-monospace, monospace;
+}
+.outlaw-rewards-rain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.55;
+}
+.outlaw-rewards-title {
+  position: absolute;
+  top: 4%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  font: 900 52px/1 ui-monospace, monospace;
+  letter-spacing: 0.3em;
+  padding-left: 0.3em;
+  background: linear-gradient(180deg, #fff6c8 0%, #ffd75e 45%, #c98a12 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 6px rgba(255, 215, 94, 0.8)) drop-shadow(0 2px 0 #000);
+  animation: outlaw-rewards-glow 1.4s ease-in-out infinite alternate;
+}
+@keyframes outlaw-rewards-glow {
+  from { filter: drop-shadow(0 0 4px rgba(255, 215, 94, 0.6)) drop-shadow(0 2px 0 #000); }
+  to { filter: drop-shadow(0 0 14px rgba(255, 215, 94, 1)) drop-shadow(0 2px 0 #000); }
+}
+.outlaw-rewards-sub {
+  position: absolute;
+  top: calc(4% + 62px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  color: #9fffb0;
+  text-shadow: 0 0 6px #000, 0 0 2px #000;
+}
+.outlaw-rewards-stage {
+  position: absolute;
+  left: 50%;
+  top: 51%;
+  width: 0;
+  height: 0;
+}
+.outlaw-rewards-wallet {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 16px rgba(63, 239, 111, 0.55));
+}
+.outlaw-rewards-wallet-jackpot {
+  filter: drop-shadow(0 0 22px rgba(224, 176, 48, 0.95));
+}
+.outlaw-rewards-wallet canvas,
+.outlaw-reward canvas {
+  display: block;
+}
+.outlaw-reward {
+  position: absolute;
+  margin: 0;
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+/* The halo: a dark disc ringed and glowing in the rarity's colour. */
+.outlaw-reward-halo {
+  padding: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(10, 20, 14, 0.95) 55%, color-mix(in srgb, var(--halo) 35%, transparent) 100%);
+  box-shadow: 0 0 0 3px var(--halo), 0 0 18px 4px var(--halo);
+}
+.outlaw-reward figcaption {
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--halo);
+}
+.outlaw-reward figcaption strong {
+  display: block;
+  color: #fff;
+  font-size: 12px;
+}
+.outlaw-reward figcaption small {
+  display: block;
+  color: var(--halo);
+  font-size: 10px;
+}
+.outlaw-game .outlaw-rewards-close {
+  position: absolute;
+  left: 50%;
+  bottom: 5%;
+  transform: translateX(-50%);
+  font-weight: bold;
+}
+@media (max-width: 700px) {
+  .outlaw-rewards-title { font-size: 34px; }
+  .outlaw-rewards-sub { top: calc(4% + 42px); }
+  .outlaw-rewards-stage { transform: scale(0.62); }
+}
+
+/* The runtime's toolbar (Local preview, the Friend, Friend wallet) floats over the bottom of the game and belongs to the SDK frame,
+   outside the game's page. The game's own menus stop above it, so their buttons are never covered. */
+.outlaw-game .rf-frame-scrim {
+  padding-bottom: 64px;
+}
+
+/* A looted item's rarity (the belongings list): a bar and a tag in the REWARDS frame's colour for it, set as --rarity. */
+.outlaw-game .outlaw-rarity {
+  padding-left: 10px;
+  border-left: 5px solid var(--rarity);
+}
+.outlaw-game .outlaw-rarity-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid #000;
+  background: var(--rarity);
+  color: #fff;
+  font: 700 10px/1.4 ui-monospace, monospace;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+/* The Licence Settlement terminal: the twelve-word seed phrase as numbered slots, and the words you hold as buttons to fill them. */
+.outlaw-game .outlaw-phrase {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.outlaw-game .outlaw-phrase button {
+  width: 100%;
+  padding: 6px 4px;
+  font-size: 12px;
+  text-align: center;
+  background: #fffbe6;
+}
+.outlaw-game .outlaw-phrase button:disabled {
+  opacity: 1;
+  color: #999;
+  background: #f4f4f4;
+}
+.outlaw-game .outlaw-phrase small {
+  display: block;
+  color: #7a6a2a;
+  font-size: 10px;
+}
+.outlaw-game .outlaw-phrase-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.outlaw-game .outlaw-phrase-words button {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+/* The twist briefing before each board: a small dark card over the (paused) board, with the twist's name and a vague teaser. */
+.outlaw-briefing-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(22, 11, 8, 0.72);
+}
+.outlaw-briefing {
+  max-width: 460px;
+  padding: 20px 24px 22px;
+  border: 2px solid #d9b048;
+  background: #160b08;
+  color: #f5e9d0;
+  font: 14px/1.5 ui-monospace, monospace;
+  text-align: center;
+  box-shadow: 0 0 0 3px #000, 0 0 24px rgba(217, 176, 72, 0.35);
+}
+.outlaw-briefing h2 {
+  margin: 4px 0 12px;
+  color: #ffd75e;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.outlaw-briefing p {
+  margin: 0 0 16px;
+}
+.outlaw-briefing .outlaw-briefing-kicker {
+  margin: 0;
+  color: #b8a888;
+  font-size: 12px;
+}
+
+/* The loot list's "Leave it" sits apart from the belongings above it. */
+.outlaw-game .outlaw-leave { margin-top: 18px; }
+/* "Hack now" and "Heck no" after the kill switch trips: side by side with room between them. */
+.outlaw-game .outlaw-choice { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+
+/* While the hacking game's "?" explanation is open, the top-right buttons step aside so it reads on its own. */
+.outlaw-game:has(.outlaw-wallet-help) .outlaw-hud { visibility: hidden; }
+
+/* "Simulated" notes in the licence office and Game Rules (preview builds). */
+.outlaw-game .outlaw-sim-note { margin: 0 0 10px; padding: 6px 10px; border-left: 3px solid #b08d57; background: #f6eedc; font-size: 12px; }
+
+/* Touch controls (Use, Switch, Dismount): only on touch screens, small and translucent, left of the minimap and above the
+   runtime's toolbar. Keyboard players never see them. */
+.outlaw-game .outlaw-touch { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .outlaw-game .outlaw-touch {
+    position: absolute; right: 18.5%; bottom: 22%; display: flex; gap: 6px; z-index: 2;
+  }
+  .outlaw-game .outlaw-touch button {
+    min-width: 64px; min-height: 40px; padding: 4px 10px; opacity: 0.85;
+    background: #f6eedc; border: 2px solid #000; font: bold 13px/1 monospace;
+  }
+}

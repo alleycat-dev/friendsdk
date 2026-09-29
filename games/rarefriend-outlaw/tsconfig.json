@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../../examples/**/*.d.ts"
+  ],
+  "exclude": [
+    ".friendsdk",
+    "practice/dist",
+    "playtest-liquidator"
+  ]
+}
