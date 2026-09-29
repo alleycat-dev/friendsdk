@@ -57,6 +57,11 @@ and `npx friendsdk test ./games/rarefriend-outlaw` (pass).
 
 **Known issues and limits:**
 
+- **Wallet warning on the preview:** MetaMask may flag the brand-new preview address
+  (`alleycat-dev.github.io`) as a possibly malicious site. It is not on MetaMask's or PhishFort's public blocklists; new github.io
+  pages that ask to connect a wallet can trip its reputation check. The preview build
+  contains no RF transfer, approval or signing code (FriendSDK v0.1.4 leaves it out of previews): it only asks to **connect**, reads
+  which Friends you own and plays the simulated economy. Never approve a signature or transaction request on it.
 - No saves: the game lives in memory, so a reload loses the run's progress (an unused licence, or one waiting to reveal its
   payout, is recovered by the licence office).
 - Touch: walking (tap), menus, the minimap, posters and the whole hacking game work by tap, and on touch screens small **Use**,
