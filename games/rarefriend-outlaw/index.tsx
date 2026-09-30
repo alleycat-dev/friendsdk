@@ -610,6 +610,8 @@ type SeedWord = typeof SEED_WORDS[number];
 /** Programs a card can carry: pre-loaded into your first slot when you next open a wallet. Only ones every board can use. */
 const CARD_PROGRAMS = ["rollback", "ico", "flashloan", "lowentropy", "multisig", "staking", "explorer"] as const;
 type BuildingKey = "datacenter" | "miningfarm";
+/** Playtesting: building keys every new game starts with (empty in the released game). */
+const PLAYTEST_START_KEYS: readonly BuildingKey[] = ["datacenter"];
 const BUILDING_KEYS: Readonly<Record<BuildingKey, { name: string; text: string }>> = {
   datacenter: { name: "Data Center key", text: "The server room is yours: every wanted outlaw shows on your map from now on." },
   miningfarm: { name: "Mining Farm key", text: "The racks mine for you: 1 OP every 30 s, up to 60, collected when you walk into the Mining Farm." },
@@ -3905,7 +3907,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   // Wallet loot beyond RF and OP (simulated, this session).
   const [seedWords, setSeedWords] = useState<ReadonlySet<SeedWord>>(() => new Set());
   const [programCards, setProgramCards] = useState<readonly ProgramId[]>([]);
-  const [keys, setKeys] = useState<ReadonlySet<BuildingKey>>(() => new Set());
+  const [keys, setKeys] = useState<ReadonlySet<BuildingKey>>(() => new Set(PLAYTEST_START_KEYS));
   const [intel, setIntel] = useState(0);
   const [gasVouchers, setGasVouchers] = useState(0);
   const [haul, setHaul] = useState<Haul | null>(null);
@@ -4146,7 +4148,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
       shots.current = []; doorCooldown = now + DOOR_COOLDOWN;
     };
     setFailed(false); setStatus("Loading the country and your Friend…"); setWallet(null); setPrompt(null); if (voiceTimer.current) clearTimeout(voiceTimer.current); setMenu(null); setStats({ shots: 0, bears: 0, lions: 0, jackpots: 0, biggest: 0n });
-    setSeedWords(new Set(PLAYTEST.liquidator ? SEED_WORDS.slice(0, SEED_WORDS.length - 1) : [])); setProgramCards([]); setKeys(new Set()); setIntel(0); setGasVouchers(0); setHaul(null); miningSince.current = null; setPosters([]); setNearPoster(-1); setViewPoster(null);
+    setSeedWords(new Set(PLAYTEST.liquidator ? SEED_WORDS.slice(0, SEED_WORDS.length - 1) : [])); setProgramCards([]); setKeys(new Set(PLAYTEST_START_KEYS)); setIntel(0); setGasVouchers(0); setHaul(null); miningSince.current = null; setPosters([]); setNearPoster(-1); setViewPoster(null);
     setSnapshot(null); setSpent(0n); setShotsLeft(0n); setRun(null); setRunEnd(null); setSettling(null); setSettled(null); setPhrase(new Set()); setKeepsakes([]); setVault(EMPTY_VAULT); setPerks([]); shots.current = []; setOwned(startOwned); setHalves({ top: false, bottom: false });  setGear({}); petSpot.current = null;  setCaptured({}); setEquipped(null); effects.current = []; setOp(0); setPermanentHorse(PLAYTEST_START_HORSE);
     setFeedback(""); setNote(PLAYTEST.liquidator ? "Playtest: The Liquidator is the last outlaw, and you hold 11 of the 12 seed words. Buy a licence to hunt him." : ""); setBusy(false);
     const start = performance.now();
