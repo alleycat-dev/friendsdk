@@ -13,7 +13,7 @@ export type SoundId = (typeof SOUND_IDS)[number];
 export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   laser: "Laser Gun shot: a low energy blast with the gun's recoil (a kick and a clack) and a canyon echo",
   hoof: "One galloping stride of a riding horse: four hoofbeats, ba-da-da-DUM (played stride after stride)",
-  flip: "A hacking-game tile flip: a short synth blip whose note is the chain's size, rising only as the chain grows",
+  flip: "A hacking-game tile flip: a computer bleep whose note is the chain's size, rising only as the chain grows",
   showdown: "Tumbleweed time: the first time a new outlaw comes near (as its red arrow appears): wind, a distant bell, a lone whistle and a trembling twang",
   bump: "Walking into an outlaw (who robs you): like walking into something, a body thump and a hollow bonk",
   smash: "Hitting a defender in a hack: demolishing brickwork, a crack, crumbling stone and a thud (a bigger collapse when it breaks)",
@@ -416,17 +416,18 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "flip": {
-      // A synth blip: two detuned sawtooths and a square an octave below, through a resonant low-pass that snaps shut at once. Its note is
-      // the chain's size on the scale (`step`), so it rises only when the chain grows and otherwise repeats the last note.
-      const note = FLIP_SCALE[Math.max(0, Math.min(FLIP_SCALE.length - 1, options.step ?? 0))], freq = hz(note);
-      const lp = ctx.createBiquadFilter(), g = ctx.createGain();
-      lp.type = "lowpass"; lp.Q.value = 7; lp.frequency.setValueAtTime(Math.min(12000, freq * 8), t); lp.frequency.exponentialRampToValueAtTime(freq * 1.5, t + 0.06);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
-      lp.connect(g); send(o, g, 0.1);
-      for (const [type, ratio, detune, level] of [["sawtooth", 1, -7, 0.5], ["sawtooth", 1, 7, 0.5], ["square", 0.5, 0, 0.3]] as const) {
+      // A computer bleep: a plain square wave with a soft sine under it, on for a moment and off, square-edged like an old terminal's
+      // beep, dry. Its note is the chain's size on the scale (`step`), an octave up, so it rises only when the chain grows and
+      // otherwise repeats the last note.
+      const note = FLIP_SCALE[Math.max(0, Math.min(FLIP_SCALE.length - 1, options.step ?? 0))] + 12, freq = hz(note);
+      const lp = ctx.createBiquadFilter(), g = ctx.createGain(), length = 0.07;
+      lp.type = "lowpass"; lp.frequency.value = 5000; lp.Q.value = 0.7;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.1, t + 0.002); g.gain.setValueAtTime(0.1, t + length - 0.004); g.gain.linearRampToValueAtTime(0, t + length);
+      lp.connect(g); send(o, g, 0);
+      for (const [type, level] of [["square", 0.55], ["sine", 0.6]] as const) {
         const osc = ctx.createOscillator(), og = ctx.createGain();
-        osc.type = type; osc.frequency.value = freq * ratio; osc.detune.value = detune; og.gain.value = level;
-        osc.connect(og).connect(lp); osc.start(t); osc.stop(t + 0.14);
+        osc.type = type; osc.frequency.value = freq; og.gain.value = level;
+        osc.connect(og).connect(lp); osc.start(t); osc.stop(t + length + 0.01);
       }
       break;
     }
@@ -499,7 +500,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 0.9, bark: 0.7, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 1.3, hoof: 0.5, flip: 0.35, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 1.3, hoof: 0.5, flip: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {
