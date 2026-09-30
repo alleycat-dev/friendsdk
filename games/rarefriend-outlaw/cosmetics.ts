@@ -1,6 +1,7 @@
 // Cosmetic keepsakes: what the Friend can wear, hold in the off hand, apply as a weapon skin, summon as a pet or hang on a wall.
-// All drawn in the world's pixel style with thin black outlines and no white halo. Body pieces recolour the Friend's own pixels,
-// so they fit any Friend's shape; headwear and masks are placed from the Friend's head row.
+// All drawn as clean shapes (fine lines and smooth curves, like the held items) with thin black outlines and no white halo, sized and
+// placed from the Friend's own pixels so they fit any Friend's shape: headwear and masks from its head row, shoes over its feet,
+// the apron over its torso. Only the hoodie recolours the Friend's pixels themselves.
 import { spriteFrame, type GenerationSprites, type SpriteFacing } from "@rarefriends/friendsdk/sprites";
 
 export type CosmeticSlot = "head" | "face" | "body" | "back" | "feet" | "offhand" | "gun-skin" | "cleaver-skin" | "pet" | "wall";
@@ -134,16 +135,44 @@ export function drawDiamondCleaver(ctx: Ctx) {
 }
 
 // ---- Worn pieces ----
-const HAT_ROWS = ["..######..", "..######..", "..#gggg#..", "##########"];
-const CROWN_ROWS = [".#..#..#.", "#y##y##y#", "#yhyyyhy#", "#hyhyhyh#", "#########"];
+// Headwear, masks, shoes and the apron are drawn as clean shapes (fine lines, smooth curves) over the Friend, like the held items;
+// the hoodie recolours the Friend's own pixels. `outlined` fills a path and gives it a thin black outline.
+function outlined(ctx: Ctx, path: () => void, fill: string, line = 1.5) {
+  ctx.beginPath(); path(); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = line; ctx.strokeStyle = "#000"; ctx.lineJoin = "round"; ctx.stroke();
+}
+function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
 function drawHead(ctx: Ctx, id: CosmeticId, shape: Shape) {
-  const y = shape.top + shape.headRow * CELL;
-  if (id === "black-hat") cells(ctx, HAT_ROWS, shape.centre, y, { "#": "#000", g: "#fff" });
-  else if (id === "gold-hat") cells(ctx, HAT_ROWS, shape.centre, y, { "#": "#000", g: "#e0b030" });
-  else if (id === "honey-crown") cells(ctx, CROWN_ROWS, shape.centre, y, { "#": "#000", y: "#f2c200", h: "#c98a12" });
-  else if (id === "sweatband") {
-    const width = shape.run.to - shape.run.from + 1;
-    cells(ctx, ["#" + "r".repeat(width) + "#"], shape.centre, shape.top + (shape.headRow + 1) * CELL, { "#": "#000", r: "#d91a1a" });
+  const y = shape.top + shape.headRow * CELL, x = shape.centre, head = (shape.run.to - shape.run.from + 1) * CELL;
+  if (id === "black-hat" || id === "gold-hat") {
+    // A Western hat: a round crown with a dented top, a band, and a wide brim curling up at the ends.
+    const crown = Math.max(18, head * 0.62), band = id === "gold-hat" ? "#e0b030" : "#e9e2d2";
+    outlined(ctx, () => { ctx.moveTo(x - crown / 2, y + 1); ctx.lineTo(x - crown / 2 + 2, y - 17); ctx.quadraticCurveTo(x - crown / 4, y - 21, x, y - 17);
+      ctx.quadraticCurveTo(x + crown / 4, y - 21, x + crown / 2 - 2, y - 17); ctx.lineTo(x + crown / 2, y + 1); ctx.closePath(); }, "#1c1c22");
+    ctx.fillStyle = band; ctx.fillRect(x - crown / 2 + 1, y - 5, crown - 2, 4);
+    if (id === "gold-hat") { ctx.fillStyle = "#fff2b0"; ctx.fillRect(x - crown / 2 + 3, y - 5, 4, 1); }
+    ctx.fillStyle = "rgba(255, 255, 255, 0.12)"; ctx.fillRect(x - crown / 2 + 4, y - 15, 3, 8);
+    const brim = head + 16;
+    outlined(ctx, () => { ctx.moveTo(x - brim / 2, y - 4); ctx.quadraticCurveTo(x - brim / 2 + 6, y + 3, x, y + 3); ctx.quadraticCurveTo(x + brim / 2 - 6, y + 3, x + brim / 2, y - 4);
+      ctx.quadraticCurveTo(x + brim / 2 - 4, y + 7, x, y + 7); ctx.quadraticCurveTo(x - brim / 2 + 4, y + 7, x - brim / 2, y - 4); ctx.closePath(); }, "#1c1c22");
+  } else if (id === "honey-crown") {
+    // The Honeycomb Crown: a gold band of hexagon cells with three points, each tipped with a drop of honey.
+    const w = Math.max(24, head * 0.8), base = y + 2, top = y - 8;
+    outlined(ctx, () => { ctx.moveTo(x - w / 2, base); ctx.lineTo(x - w / 2, top); ctx.lineTo(x - w / 3, top - 9); ctx.lineTo(x - w / 6, top);
+      ctx.lineTo(x, top - 12); ctx.lineTo(x + w / 6, top); ctx.lineTo(x + w / 3, top - 9); ctx.lineTo(x + w / 2, top); ctx.lineTo(x + w / 2, base); ctx.closePath(); }, "#f2c200");
+    ctx.strokeStyle = "#c98a12"; ctx.lineWidth = 1;
+    for (let k = 0; k < 4; k++) {
+      const cx = x - w / 2 + w * (k + 0.5) / 4, cy = base - 5;
+      ctx.beginPath(); for (let a = 0; a < 6; a++) { const t = Math.PI / 3 * a; ctx[a ? "lineTo" : "moveTo"](cx + Math.cos(t) * 3, cy + Math.sin(t) * 3); } ctx.closePath(); ctx.stroke();
+    }
+    ctx.fillStyle = "#e8a317";
+    for (const [dx, dy] of [[-w / 3, top - 9], [0, top - 12], [w / 3, top - 9]]) { ctx.beginPath(); ctx.arc(x + dx, dy - 1.5, 2.2, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = "#000"; ctx.stroke(); }
+  } else if (id === "sweatband") {
+    // A red terry sweatband around the forehead, with a white stripe.
+    const w = head + 4, top = y + CELL + 1;
+    outlined(ctx, () => roundRect(ctx, x - w / 2, top, w, 6, 2), "#d91a1a");
+    ctx.fillStyle = "#fff"; ctx.fillRect(x - w / 2 + 2, top + 2.5, w - 4, 1);
   }
 }
 /** Sybil's hundred faces: a new face every 0.7 s (the first one only under reduced motion). */
@@ -151,17 +180,24 @@ const SYBIL_FACES = [{ skin: "#f2c9a0", mouth: "k" }, { skin: "#b8d8f5", mouth: 
 function drawFace(ctx: Ctx, id: CosmeticId, shape: Shape, facing: SpriteFacing, now: number, still: boolean) {
   if (facing === "up") return;
   // Facing sideways the mask sits on the side of the face the Friend looks toward.
-  const shift = facing === "left" ? -CELL : facing === "right" ? CELL : 0, x = shape.centre + shift;
+  const shift = facing === "left" ? -CELL : facing === "right" ? CELL : 0, x = shape.centre + shift, head = (shape.run.to - shape.run.from + 1) * CELL;
+  const bottom = shape.top + (shape.headRow + 5) * CELL;
   if (id === "pig-snout") {
-    cells(ctx, [".###.", "#pdp#", "#pdp#", ".###."], x, shape.top + (shape.headRow + 4) * CELL, { "#": "#000", p: "#f2a0b8", d: "#8a3a55" }, 4);
+    // A pink pig's snout: a round disc with two dark nostrils.
+    const cy = bottom - 11;
+    outlined(ctx, () => ctx.ellipse(x, cy, 9, 7, 0, 0, Math.PI * 2), "#f2a0b8");
+    ctx.fillStyle = "#8a3a55"; for (const dx of [-3.5, 3.5]) { ctx.beginPath(); ctx.ellipse(x + dx, cy, 1.8, 3, 0, 0, Math.PI * 2); ctx.fill(); }
     return;
   }
-  const width = Math.max(5, Math.min(9, shape.run.to - shape.run.from - 1)) | 1, inner = width - 2;
+  // The paper mask (and Sybil's faces, a new face every 0.7 s): a rounded sheet over the face, with eye holes, a mouth, and a string.
   const face = id === "sybil-faces" ? SYBIL_FACES[still ? 0 : Math.floor(now / 700) % SYBIL_FACES.length] : { skin: "#f4efe4", mouth: "k" as const };
-  const eyes = "w".repeat(Math.max(0, Math.floor((inner - 3) / 2))), gap = "w".repeat(inner - 2 - eyes.length * 2);
-  // Four rows over the eyes and mouth: an outline, the eye holes, the mouth, an outline.
-  const rows = ["#".repeat(width), "#" + eyes + "k" + gap + "k" + eyes + "#", "#" + "w" + (face.mouth === "r" ? "r" : "k").repeat(Math.max(1, inner - 2)) + "w" + "#", "#".repeat(width)];
-  cells(ctx, rows, x, shape.top + (shape.headRow + 4) * CELL, { "#": "#000", w: face.skin, k: "#000", r: "#c8322a" });
+  const w = Math.max(22, Math.min(head - 2, 40)), h = 18, top = bottom - h - 2;
+  ctx.strokeStyle = "#7a6a58"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - w / 2, top + 6); ctx.lineTo(x - w / 2 - 4, top + 4); ctx.moveTo(x + w / 2, top + 6); ctx.lineTo(x + w / 2 + 4, top + 4); ctx.stroke();
+  outlined(ctx, () => roundRect(ctx, x - w / 2, top, w, h, 6), face.skin);
+  ctx.fillStyle = "#000";
+  for (const dx of [-w / 4, w / 4]) { ctx.beginPath(); ctx.ellipse(x + dx, top + 7, 2.6, 2, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = face.mouth === "r" ? "#c8322a" : "#000"; ctx.lineWidth = 2; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(x - w / 6, top + 13); ctx.quadraticCurveTo(x, top + (face.mouth === "r" ? 16 : 14), x + w / 6, top + 13); ctx.stroke(); ctx.lineCap = "butt";
 }
 function drawBody(ctx: Ctx, id: CosmeticId, shape: Shape, facing: SpriteFacing) {
   const to = shape.last - 2;
@@ -175,20 +211,33 @@ function drawBody(ctx: Ctx, id: CosmeticId, shape: Shape, facing: SpriteFacing) 
       recolour(ctx, shape, shape.torso, shape.torso + 1, (_, c, span) => { const middle = (span.from + span.to + 1) / 2; return Math.abs(c + 0.5 - (middle - 1)) < 0.6 || Math.abs(c + 0.5 - (middle + 1)) < 0.6 ? "#f0f0f0" : null; });
     }
   } else if (id === "apron") {
-    // A butcher's apron: blue and white stripes down the front, with a neck strap; only its edge shows from behind.
-    if (facing === "up") { recolour(ctx, shape, shape.torso + 1, shape.torso + 1, () => "#3d5f99"); return; }
-    recolour(ctx, shape, shape.torso, to, (_, c, span) => { const middle = (span.from + span.to) / 2, half = Math.max(1, (span.to - span.from) * 0.35); return Math.abs(c + 0.5 - middle - 0.5) <= half ? (c % 2 === 0 ? "#3d5f99" : "#e8eef8") : null; });
-    recolour(ctx, shape, shape.torso - 2, shape.torso - 1, (_, c, span) => (Math.abs(c + 0.5 - (span.from + span.to + 1) / 2) < 1.1 ? "#3d5f99" : null));
+    // A butcher's apron: a blue-and-white striped bib down the front, with a neck strap; from behind, only its tie shows.
+    const top = shape.top + shape.torso * CELL, bottom = shape.top + (to + 1) * CELL - 1, x = shape.centre;
+    const span = (() => { const row = shape.rows[shape.torso] ?? ""; const drawn = [...row].map((ch, c) => (ch !== "." ? c : -1)).filter(c => c >= 0); return drawn.length ? (drawn[drawn.length - 1] - drawn[0] + 1) * CELL : 30; })();
+    if (facing === "up") {
+      ctx.strokeStyle = "#3d5f99"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - span / 2 + 3, top + 6); ctx.lineTo(x + span / 2 - 3, top + 6); ctx.stroke();
+      outlined(ctx, () => { ctx.ellipse(x - 3, top + 6, 3, 2, 0, 0, Math.PI * 2); ctx.moveTo(x + 6, top + 6); ctx.ellipse(x + 3, top + 6, 3, 2, 0, 0, Math.PI * 2); }, "#3d5f99", 1);
+      return;
+    }
+    const w = Math.max(14, span * 0.66), path = () => { ctx.moveTo(x - w / 2 + 2, top); ctx.lineTo(x + w / 2 - 2, top); ctx.lineTo(x + w / 2, bottom - 3); ctx.quadraticCurveTo(x, bottom + 2, x - w / 2, bottom - 3); ctx.closePath(); };
+    ctx.strokeStyle = "#3d5f99"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - w / 2 + 3, top); ctx.lineTo(x - 3, top - 2 * CELL); ctx.moveTo(x + w / 2 - 3, top); ctx.lineTo(x + 3, top - 2 * CELL); ctx.stroke();
+    ctx.save(); ctx.beginPath(); path(); ctx.fillStyle = "#e8eef8"; ctx.fill(); ctx.clip();
+    ctx.fillStyle = "#3d5f99"; for (let sx = x - w / 2; sx < x + w / 2; sx += 6) ctx.fillRect(sx, top, 3, bottom - top + 4);
+    ctx.restore();
+    ctx.beginPath(); path(); ctx.lineWidth = 1.5; ctx.strokeStyle = "#000"; ctx.stroke();
   }
 }
 function drawFeet(ctx: Ctx, shape: Shape) {
-  // Red running shoes with a white stripe: every drawn cell of the bottom two rows (feet are often one cell wide, so there is no
-  // inside to recolour), a darker sole along the bottom.
-  for (const r of [shape.last - 1, shape.last]) [...(shape.rows[r] ?? "")].forEach((ch, c) => {
-    if (ch === ".") return;
-    ctx.fillStyle = r === shape.last ? "#8a2a20" : c % 3 === 1 ? "#fff" : "#d94f3c";
-    ctx.fillRect(shape.left + c * CELL, shape.top + r * CELL, CELL, CELL);
-  });
+  // Red running shoes: over each foot (each run of drawn cells in the bottom row) a rounded sneaker with a white stripe and a dark sole.
+  const row = shape.rows[shape.last] ?? "", top = shape.top + (shape.last - 1) * CELL, sole = shape.top + (shape.last + 1) * CELL;
+  const feet: [number, number][] = [];
+  [...row].forEach((ch, c) => { if (ch === ".") return; const last = feet[feet.length - 1]; if (last && last[1] === c - 1) last[1] = c; else feet.push([c, c]); });
+  for (const [from, to] of feet) {
+    const left = shape.left + from * CELL - 1, right = shape.left + (to + 1) * CELL + 1, w = right - left;
+    outlined(ctx, () => { ctx.moveTo(left, sole - 2); ctx.lineTo(left + 1, top + 3); ctx.quadraticCurveTo(left + w / 2, top - 1, right - 2, top + 4); ctx.quadraticCurveTo(right + 1, sole - 6, right, sole - 2); ctx.closePath(); }, "#d94f3c");
+    ctx.fillStyle = "#8a2a20"; ctx.fillRect(left + 1, sole - 3, w - 2, 2);
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(left + w * 0.25, sole - 4); ctx.lineTo(left + w * 0.6, top + 3); ctx.stroke();
+  }
 }
 /** The Original Rug as a cape: a red and orange striped rug with a cream fringe, from the shoulders to the feet. */
 function drawCape(ctx: Ctx, shape: Shape, facing: SpriteFacing, walking: boolean, frame: number) {

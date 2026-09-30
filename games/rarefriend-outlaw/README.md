@@ -974,7 +974,7 @@ your next hack). Cosmetic keepsakes can be used from the inventory (see "Cosmeti
 
 ### Cosmetics
 
-Twenty cosmetics, drawn in `cosmetics.ts` with thin black outlines and no white halo. Each has a slot and
+Twenty cosmetics, drawn in `cosmetics.ts` as clean shapes (fine lines and smooth curves, not the Friend's big pixel cells) with thin black outlines and no white halo, sized and placed from the Friend's own pixels: hats, the crown, the sweatband and masks from its head row, shoes over its feet, the apron over its torso (the hoodie recolours the Friend's pixels themselves). Each has a slot and
 the Friend wears at most one per slot; the inventory lists every one you own with a button to put it on
 or take it off (the last one chosen in a slot replaces the one before):
 
