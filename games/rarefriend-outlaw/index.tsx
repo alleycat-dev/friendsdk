@@ -3263,7 +3263,9 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
   // Where the program slots were last drawn: a click runs one, a right-click discards it.
   const slotBoxes = useRef<{ x: number; y: number; w: number; h: number }[]>([]);
   // Programs picked up: each stays on its tile for half a second, then floats to its slot (presentation only; the slot is already loaded).
-  const pickups = useRef<{ id: ProgramId; slot: number; tile: number; at: number }[]>([]), lastSlots = useRef<readonly ProgramId[] | null>(null);
+  // `hold`: how long it waits on its tile before flying (a newly flipped program PICKUP_HOLD, one clicked on the board none).
+  const pickups = useRef<{ id: ProgramId; slot: number; tile: number; at: number; hold: number }[]>([]), lastSlots = useRef<readonly ProgramId[] | null>(null);
+  const claimSeen = useRef<object | null>(null);
   const [help, setHelp] = useState(false);
   const [ownBriefing, setOwnBriefing] = useState(true);
   const briefed = briefing === undefined ? !ownBriefing : !briefing;
@@ -3346,11 +3348,14 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
       // A newly loaded slot starts a pickup from the tile that held the program (the probe: flipping or claiming it made it so). A
       // pickup whose slot no longer holds its program (run, discarded, drained, a new board) is dropped.
       const before = lastSlots.current; lastSlots.current = current.slots;
+      // A program clicked where it lay on the board flies from that tile straight away.
+      const clicked = current.claimedFrom && current.claimedFrom !== claimSeen.current ? current.claimedFrom : null;
+      if (clicked) claimSeen.current = clicked;
       if (before && current.slots !== before && current.slots.length > before.length) {
         const slot = current.slots.length - 1;
-        pickups.current.push({ id: current.slots[slot], slot, tile: current.probe, at: now });
+        pickups.current.push({ id: current.slots[slot], slot, tile: clicked ? clicked.tile : current.probe, at: now, hold: clicked ? 0 : PICKUP_HOLD });
       }
-      pickups.current = pickups.current.filter(p => current.slots[p.slot] === p.id && now - p.at < PICKUP_HOLD + PICKUP_FLY + PICKUP_FLASH);
+      pickups.current = pickups.current.filter(p => current.slots[p.slot] === p.id && now - p.at < p.hold + PICKUP_FLY + PICKUP_FLASH);
       // A Validator's heal: its defenders' badges show the hit first (one HP lower) for HEAL_HOLD ms, then the healed HP with a "+1".
       if (current.healed && current.healed !== healSeen.current) { healSeen.current = current.healed; healAnim.current = { tiles: current.healed.tiles, at: now }; }
       const healT = healAnim.current ? now - healAnim.current.at : Infinity, healing = (index: number) => healT < HEAL_HOLD + HEAL_FLOAT && healAnim.current!.tiles.includes(index);
@@ -3375,7 +3380,7 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
       if (botsExtra > 600 || botsExtra < 0) { anchor.current = now - current.clock; botsExtra = 0; }
       const bots = current.bots ? advanceBots(current, botsExtra)?.bots ?? current.bots : null;
       const onBotLine = (index: number) => !!bots && (bots.axis === "row" ? Math.floor(index / n) : index % n) === bots.line;
-      const heldOn = (index: number) => pickups.current.find(p => p.tile === index && now - p.at < PICKUP_HOLD);
+      const heldOn = (index: number) => pickups.current.find(p => p.tile === index && now - p.at < p.hold);
       // A lost board is wiped: it explodes in a flash, shards and fire, then stays gone behind the loss message.
       if (current.phase !== "lost") lostAt.current = null; else if (lostAt.current === null) lostAt.current = now;
       const wipedFor = lostAt.current === null ? -1 : (now - lostAt.current) / 1000;
@@ -3658,14 +3663,14 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
         ctx.fillStyle = "#2a1a12"; ctx.fillRect(box.x, box.y, box.w, box.h);
         ctx.strokeStyle = id && current.targeting === id ? "#ffe08a" : "#5a4636"; ctx.lineWidth = id && current.targeting === id ? 3 : 2; ctx.strokeRect(box.x, box.y, box.w, box.h);
         // A slot whose program is still on its way stays empty until it lands, then flashes white.
-        const coming = pickups.current.find(p => p.slot === i), since = coming ? now - coming.at : Infinity, lands = PICKUP_HOLD + (still ? 0 : PICKUP_FLY);
+        const coming = pickups.current.find(p => p.slot === i), since = coming ? now - coming.at : Infinity, lands = (coming?.hold ?? PICKUP_HOLD) + (still ? 0 : PICKUP_FLY);
         if (id && since >= lands) drawWalletIcon(ctx, id, box.x + box.w / 2 + 2, box.y + 34, 27);
         if (coming && since >= lands && since < lands + PICKUP_FLASH) { ctx.strokeStyle = `rgba(255, 255, 255, ${1 - (since - lands) / PICKUP_FLASH})`; ctx.lineWidth = 3; ctx.strokeRect(box.x, box.y, box.w, box.h); }
         ctx.font = "10px ui-monospace, monospace"; ctx.fillStyle = "#b8a890"; ctx.textAlign = "left"; ctx.fillText(`${i + 1}`, box.x + 3, box.y + 11); ctx.font = "bold 14px ui-monospace, monospace";
       }
       // Programs in flight, over everything: an eased arc from the tile's centre up to the slot (reduced motion: they land at once).
       for (const p of pickups.current) {
-        const t = (now - p.at - PICKUP_HOLD) / PICKUP_FLY, box = slotBoxes.current[p.slot];
+        const t = (now - p.at - p.hold) / PICKUP_FLY, box = slotBoxes.current[p.slot];
         if (t < 0 || t >= 1 || still || !box) continue;
         const e = 1 - (1 - t) ** 3, from = at(p.tile % n + 0.5, Math.floor(p.tile / n) + 0.5), to = { x: box.x + box.w / 2, y: box.y + 30 };
         drawWalletIcon(ctx, p.id, from.x + (to.x - from.x) * e, from.y + 4 + (to.y - from.y - 4) * e - Math.sin(e * Math.PI) * 60, ICON_SIZE);

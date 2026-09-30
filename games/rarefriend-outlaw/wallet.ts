@@ -458,6 +458,8 @@ export type WalletState = {
   /** Twists are never announced beforehand: each moment one first bites fires an event, once (its key goes in `fired`), and the
    * latest event's lettering is shown over the board. A new object per event, so the screen can tell a fresh one. */
   fired: readonly string[]; twistEvent?: { label: string; detail?: string };
+  /** The tile of the latest program claimed from the board by clicking it (a new object per claim), so the screen flies it from there. */
+  claimedFrom?: { tile: number };
   lostBy?: WalletLoss;
 };
 /** Fire a twist event (once per key): big lettering over the board. `s` is a working copy. */
@@ -936,6 +938,7 @@ function walletReduceInner(state: WalletState, action: WalletAction): WalletStat
       if (canClaim(state, action.index)) {
         const s: WalletState = { ...state, tiles: state.tiles.map(t => ({ ...t })) };
         s.text = (snipe(s, action.index) ?? claim(s, action.index)).trim();
+        s.claimedFrom = { tile: action.index };
         // Front-Running: a claim at priority gas is a transaction too, and pays the fee.
         const fee = priorityFee(s);
         if (fee) { s.trace += fee; s.text += ` Priority gas: +${fee} trace.`; }
