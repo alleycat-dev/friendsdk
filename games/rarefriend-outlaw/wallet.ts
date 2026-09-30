@@ -483,7 +483,7 @@ export function newWallet(tier: WalletTier, random: () => number = Math.random):
     clock: 0, bots: null, botsAt: BOT_RESPAWN_MS, slippageUntil: 0,
     // A Botnet's two Viruses are there from the start, so its lettering shows as the board opens.
     chain: 1, chainPaid: 0,
-    fired: tier.twist === "botnet" ? ["botnet"] : [], twistEvent: tier.twist === "botnet" ? { label: "BOTNET!!!" } : undefined,
+    fired: tier.twist === "botnet" ? ["botnet"] : [], twistEvent: tier.twist === "botnet" ? { label: "BOTNET!!!", detail: "More than one Virus is hunting you" } : undefined,
     text: `A ${tier.name.toLowerCase()} hardware wallet. Find the Secure Chip before the trace completes.` };
 }
 
@@ -634,7 +634,7 @@ function afterMove(state: WalletState, index: number): WalletState {
     if (tier.twist === "frontrun" && !s.priority) {
       // Front-Running at normal gas: the block reward is taken before it reaches you (the chain still counts as paid).
       text += ` Your chain reaches ${s.chain} tiles. FRONT-RUN: the Front Runner took the +${reward} Integrity block reward.`;
-      fire(s, "frontrun", "FRONT-RUN!!!");
+      fire(s, "frontrun", "FRONT-RUN!!!", "The Front Runner took your block reward");
     } else {
       grit += gain;
       text += ` Your chain reaches ${s.chain} tiles. Block reward: +${gain} Integrity.`;
@@ -650,11 +650,11 @@ function afterMove(state: WalletState, index: number): WalletState {
       if (t.kind === "program" || t.kind === "honeypot") s.tiles[i] = { ...t, kind: "empty", program: undefined };
       if (s.tiles[i].kind === "empty" && i !== s.start) s.tiles[i] = { ...s.tiles[i], blank: true, decoy: false, exposed: false, beacon: false };
     }
-    text += " Exit scam: every sector reading is wiped and every program left on the board vanishes."; fire(s, "exitscam", "EXIT SCAM!!!");
+    text += " Exit scam: every sector reading is wiped and every program left on the board vanishes."; fire(s, "exitscam", "EXIT SCAM!!!", "Readings wiped, board programs gone");
   }
   // The Rug Pull: no warning; it lands on its secret move.
   s.moves += 1;
-  if (tier.twist === "rugpull" && !s.pulled && s.moves >= s.rugAt) { s = rugPull(s); text += " RUGPULL! The board is pulled out from under you: everything but the tile you stand on is face down again."; fire(s, "rugpull", "RUGPULL!!!"); }
+  if (tier.twist === "rugpull" && !s.pulled && s.moves >= s.rugAt) { s = rugPull(s); text += " RUGPULL! The board is pulled out from under you: everything but the tile you stand on is face down again."; fire(s, "rugpull", "RUGPULL!!!", "The board is face down again: remember it"); }
   s = { ...s, trace, grit, text };
   // The Viruses: each steps on its clock, then bites the probe if it is on or next to it.
   const steps = 1;
@@ -682,9 +682,9 @@ function afterMove(state: WalletState, index: number): WalletState {
   // hold is sold for you, or, with nothing to sell, the trace pays for a top-up.
   if (tier.twist === "margincall" && s.grit > 0) {
     // The Flash Crash: the move just made has entered the crash (the lettering fires once), or ended it.
-    if (flashCrashing(s) && flashLeft(s) === FLASH.lasts) { s.text += " FLASH CRASH: Power 1, strike-backs and bites doubled for two moves."; fire(s, "crash", "FLASH CRASH!!!"); }
+    if (flashCrashing(s) && flashLeft(s) === FLASH.lasts) { s.text += " FLASH CRASH: Power 1, strike-backs and bites doubled for two moves."; fire(s, "crash", "FLASH CRASH!!!", "Power 1, hits and bites doubled: 2 moves"); }
     else if (crashed && !flashCrashing(s)) s.text += " The market recovers.";
-    if (equityOf(s) <= EQUITY.margin && s.sales < EQUITY.sales) fire(s, "margin", "MARGIN CALL!!!");
+    if (equityOf(s) <= EQUITY.margin && s.sales < EQUITY.sales) fire(s, "margin", "MARGIN CALL!!!", "Right-click a program to sell it for Equity");
     if (equityOf(s) > EQUITY.forced) s.forcedArmed = true;
     else if (s.forcedArmed && s.forced < EQUITY.forcedTimes) {
       s.forcedArmed = false; s.forced += 1;
@@ -692,12 +692,13 @@ function afterMove(state: WalletState, index: number): WalletState {
         const gain = Math.min(s.slots.length * equityPoints(tier, EQUITY.forcedEach), tier.grit - s.grit), sold = s.slots.length;
         s.slots = []; s.targeting = null; s.explorerPicks = 0; s.grit += gain;
         s.text += ` FORCED SELLING: ${sold} program${sold === 1 ? "" : "s"} sold for +${Math.round(gain / tier.grit * 100)}% Equity.`;
+        fire(s, "forced", "FORCED SELLING!!!", "Programs sold off for Equity");
       } else {
         const gain = Math.min(equityPoints(tier, EQUITY.penaltyGain), tier.grit - s.grit);
         s.trace += EQUITY.penaltyTrace; s.grit += gain;
         s.text += ` FORCED SELLING: nothing to sell; +${EQUITY.penaltyTrace} trace for +${Math.round(gain / tier.grit * 100)}% Equity.`;
+        fire(s, "forced", "FORCED SELLING!!!", `No programs: +${EQUITY.penaltyTrace} trace for Equity`);
       }
-      fire(s, "forced", "FORCED SELLING!!!");
       if (equityOf(s) > EQUITY.forced) s.forcedArmed = true;
     }
     // The Liquidator: at the forced line or under he appears on a random tile four steps from you (the nearest ring beyond that
@@ -720,7 +721,7 @@ function afterMove(state: WalletState, index: number): WalletState {
       if (s.liquidator === s.probe) {
         s = { ...rugPull(s), pulled: state.pulled, liquidator: null, seizures: s.seizures + 1, grit: Math.min(s.grit, equityPoints(tier, EQUITY.liquidated)) };
         s.text += ` LIQUIDATED: The Liquidator closes your position. Equity ${Math.round(EQUITY.liquidated * 100)}%, and every uncovered tile but yours is seized.`;
-        fire(s, "liquidated", "LIQUIDATED!!!");
+        fire(s, "liquidated", "LIQUIDATED!!!", `Equity ${Math.round(EQUITY.liquidated * 100)}%, your uncovered tiles seized`);
       }
     }
   }
@@ -748,7 +749,7 @@ function runProgram(state: WalletState, slot: number, target: number): WalletSta
   if (tier.twist === "butchering" && state.slotLimit >= 2 && state.slots.length >= state.slotLimit) {
     const s: WalletState = { ...state, slots: [], slotLimit: state.slotLimit - 1, targeting: null, explorerPicks: 0, butchered: true,
       text: `BUTCHERED: ${PROGRAMS[id].name} never ran. Your hand is gone and you are down to ${state.slotLimit - 1} slot${state.slotLimit - 1 === 1 ? "" : "s"}.` };
-    fire(s, `butchered-${state.slotLimit}`, "BUTCHERED!!!");
+    fire(s, `butchered-${state.slotLimit}`, "BUTCHERED!!!", "Your hand is gone, and one slot with it");
     return s;
   }
   // A Rollback costs 2 Integrity, and never the last of it.
@@ -849,7 +850,7 @@ function snipe(s: WalletState, index: number): string | null {
   const t = s.tiles[index];
   if (s.tier.twist !== "frontrun" || s.priority || !t.program) return null;
   const name = PROGRAMS[t.program].name; t.program = undefined;
-  fire(s, "frontrun", "FRONT-RUN!!!");
+  fire(s, "frontrun", "FRONT-RUN!!!", "The Front Runner took that program first");
   return ` FRONT-RUN: the Front Runner saw your move and took the ${name} first.`;
 }
 /** Front-Running, at priority gas: the fee on a flip, attack or claim. */
@@ -898,7 +899,7 @@ function walletReduceInner(state: WalletState, action: WalletAction): WalletStat
       if (s.clock < s.slippageUntil) { s.text = "Sandwiched, but Low Slippage holds: the bots take nothing."; return s; }
       s.grit -= SANDWICH_DAMAGE; s.sandwiched = { tile: s.probe, amount: SANDWICH_DAMAGE };
       s.text = `SANDWICHED: the bots close on you from both sides for ${SANDWICH_DAMAGE} Integrity.`;
-      fire(s, "sandwich", "SANDWICHED!!!");
+      fire(s, "sandwich", "SANDWICHED!!!", `Caught between the bots: -${SANDWICH_DAMAGE} Integrity`);
       if (s.grit <= 0) return { ...s, grit: 0, phase: "lost", lostBy: "grit", text: `${s.text} Integrity gone; the wallet wipes itself.` };
       return s;
     }
@@ -967,19 +968,19 @@ function walletReduceInner(state: WalletState, action: WalletAction): WalletStat
         case "program": text = "A program." + (snipe(s, action.index) ?? claim(s, action.index)); break;
         case "fakechip":
           text = "A Red Chip: one of Sybil's fakes. The readings around it lied; the real chip is elsewhere.";
-          fire(s, "sybil", "SYBIL ATTACK!!!");
+          fire(s, "sybil", "SYBIL ATTACK!!!", "A fake chip: the readings near it lied");
           break;
         case "drainer":
           if (!s.drained) {
             // The drain takes the wallet's valuables and every program you hold with them.
             s.drained = true; const held = s.slots.length; s.slots = []; s.targeting = null; s.explorerPicks = 0;
             text = `WALLET DRAINED: a drainer trap. The hardware wallet is drained of all its valuables${held ? `, and your ${held} program${held === 1 ? "" : "s"} with them` : ""}.`;
-            fire(s, "drained", "DRAINED!!!");
+            fire(s, "drained", "DRAINED!!!", "Your programs went with the valuables");
           }
           else text = "Another drainer trap, but all the valuables were already taken by the previous drainer.";
           break;
         case "honeypot": {
-          if (tier.twist === "honeyfarm") fire(s, "honeyfarm", "HONEYPOT!!!");
+          if (tier.twist === "honeyfarm") fire(s, "honeyfarm", "HONEYPOT!!!", "It pinged the tracer and stirred the Virus");
           trace += tier.honeypotTrace;
           text = `HONEYPOT!!! Trace + ${tier.honeypotTrace}.${s.viruses.length ? " Every Virus lunges toward you." : ""}` + (snipe(s, action.index) ?? claim(s, action.index));
           // Its program claimed, the Honeypot is an empty sector; unclaimed, it stays as a program tile to take later.
@@ -1026,7 +1027,7 @@ function walletReduceInner(state: WalletState, action: WalletAction): WalletStat
         case "whale": text = `Whale (HP ${tile.hp}, ATK ${tier.defenders.whale.atk}): it hits hard.`; break;
         default: text = `${kindName[tile.kind]} (HP ${tile.hp}, ATK ${tier.defenders[tile.kind as DefenderKind].atk}). It guards the tiles around it.`;
       }
-      if (climb > 1) { const lacking = Math.log2(climb); text += ` Pyramid: ${lacking} row${lacking > 1 ? "s" : ""} below lack${lacking > 1 ? "" : "s"} support, ×${climb} trace.`; fire(s, "pyramid", "PYRAMID!!!"); }
+      if (climb > 1) { const lacking = Math.log2(climb); text += ` Pyramid: ${lacking} row${lacking > 1 ? "s" : ""} below lack${lacking > 1 ? "" : "s"} support, ×${climb} trace.`; fire(s, "pyramid", "PYRAMID!!!", `Rows below lack support: ×${climb} trace`); }
       if (fee) text += ` Priority gas: +${fee} trace.`;
       if (gas) text += ` Gas Spike: this flip cost ${GAS_COST} trace.`;
       return afterMove({ ...s, grit, trace, text, cursor: action.index, trail: [...s.trail, action.index] }, action.index);

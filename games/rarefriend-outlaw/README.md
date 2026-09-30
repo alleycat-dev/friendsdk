@@ -589,6 +589,10 @@ for the last ten), and a parked one with its time running shows its seconds over
     Alarms / Validators / Whales; attackers are Difficulty Bombs / Hard
     Forks / Reentrancy Attacks / Gas Spikes; Cold is Cold Storage; specials
     are programs + Honeypots.
+  Under each shout a short white line says what just happened, never what is still hidden: RUGPULL!!! "The board is face
+  down again: remember it", BUTCHERED!!! "Your hand is gone, and one slot with it", PUMPED!!! "Your Power is pumped up to 4",
+  MARGIN CALL!!! "Right-click a program to sell it for Equity", PYRAMID!!! with the flip's trace multiplier, and so on for every
+  twist (the `detail` of each `fire` in `wallet.ts`).
 
   | # | Outlaw | Twist | Tier | Board | Integrity | Defenders (F/A/V/W) | Attackers (B/H/R/G) | Cold | Specials | Slots | Virus (steps / bite) | Trace | Bot wins |
   | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
