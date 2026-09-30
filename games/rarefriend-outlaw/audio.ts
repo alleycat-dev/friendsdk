@@ -958,6 +958,22 @@ const STANDOFF_TRUMPET: readonly (readonly [number, number, number, number])[] =
   [2, 0, 7, 0.75], [2, 0.75, 3, 0.25], [2, 1, 7, 1], [2, 2, 5, 0.5], [2, 2.5, 3, 0.5], [2, 3, 2, 1],
   [3, 0, -1, 1.5], [3, 1.5, 2, 0.5], [3, 2, 7, 2],
 ];
+/** A snare drum: a burst of bright rattling noise over a short, dropping tone from the drum head. */
+function snare(o: Out, t: number, gain: number) {
+  noiseBand(o, t, 0.13, "bandpass", 2400, 1600, 0.7, gain, 0.001, 0.2);
+  const { ctx } = o, head = ctx.createOscillator(), g = ctx.createGain();
+  head.type = "triangle"; head.frequency.setValueAtTime(230, t); head.frequency.exponentialRampToValueAtTime(170, t + 0.05);
+  g.gain.setValueAtTime(gain * 0.9, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+  head.connect(g); send(o, g, 0.1); head.start(t); head.stop(t + 0.08);
+}
+/** A floor tom: a boomy, dropping tone that rings a little longer than a thud, with a slap of noise on top. */
+function tom(o: Out, t: number, freq: number, gain: number) {
+  const { ctx } = o, osc = ctx.createOscillator(), g = ctx.createGain();
+  osc.type = "sine"; osc.frequency.setValueAtTime(freq * 1.5, t); osc.frequency.exponentialRampToValueAtTime(freq, t + 0.06);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+  osc.connect(g); send(o, g, 0.15); osc.start(t); osc.stop(t + 0.32);
+  noiseBand(o, t, 0.03, "lowpass", 1400, 600, 0.7, gain * 0.35, 0.001, 0.05);
+}
 function scheduleStandoffBar(o: Out, t: number, bar: number, pass: number) {
   const { ctx } = o, [root, tones] = STANDOFF_CHORDS[bar], beat = STANDOFF_BEAT;
   // The dark drone on the root, and the bass struck at the top of the bar.
@@ -981,6 +997,17 @@ function scheduleStandoffBar(o: Out, t: number, bar: number, pass: number) {
   // Every other pass the toreador's trumpet calls out; on the others the low, uneasy whistle.
   if (pass % 2 === 1) for (const [atBar, at, note, beats] of STANDOFF_TRUMPET) { if (atBar === bar) { trumpet(o, t + at * beat, hz(note), beats * beat * 0.9, 0.05); trumpet(o, t + at * beat, hz(note - 12), beats * beat * 0.9, 0.025); } }
   else if (pass % 4 === 2) for (const [atBar, at, note, beats] of STANDOFF_WHISTLE) if (atBar === bar) whistle(o, t + at * beat, hz(note), hz(note), beats * beat * 0.95, 0.045);
+  // The drums, driving it on: toms pounding the eighths (low on the beat, higher off it, the offbeat before 2 and 4 pushed), the
+  // snare cracking on 2 and 4 with ghost notes skittering between; the last bar ends in a snare roll that swells into a crash,
+  // louder with every pass.
+  for (let k = 0; k < 8; k++) tom(o, t + k * beat / 2, k % 2 ? 110 : 82, k % 2 ? (k === 1 || k === 5 ? 0.17 : 0.1) : 0.21);
+  for (const at of [1, 3]) snare(o, t + at * beat, 0.14);
+  for (const at of [0.75, 1.5, 2.25, 2.75, 3.5]) if (bar !== 3 || at < 2) snare(o, t + at * beat, 0.025);
+  if (bar === 3) {
+    const swell = Math.min(1, 0.6 + 0.2 * (pass % 3));
+    for (let k = 0; k < 16; k++) snare(o, t + (2 + k / 8) * beat, (0.02 + 0.07 * k / 15) * swell);
+    noiseBand(o, t + 4 * beat, 1.2, "highpass", 6000, 3500, 0.5, 0.07 * swell, 0.003, 0.5);
+  }
   if (bar === 3) for (const [f, level, ring] of [[hz(-24), 0.035, 3.5], [hz(-24) * 2.4, 0.018, 2.5]] as const) {
     const bell = ctx.createOscillator(), bg = ctx.createGain(), at = t + 2 * beat;
     bell.type = "sine"; bell.frequency.value = f;

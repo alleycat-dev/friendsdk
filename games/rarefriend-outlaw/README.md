@@ -1089,7 +1089,8 @@ trumpet line; and **"The Standoff"** while a living outlaw is near (within 600 w
 gallop), a panicky toreador piece at 112 beats a minute over Am - Bb - Am - E (the half-step up to Bb the menace, Phrygian like a
 paso doble), with rattling castanets (tr-r-RA on every beat), flamenco strums on beats one and three, a Spanish trumpet call every
 other pass and a low, uneasy whistle every fourth pass in between, over the trembling tremolo guitar, low heartbeat, dark drone and a bell tolling at
-the end of each pass. The hacking game has its own track, **"Trace"** (`scheduleHackBar`):
+the end of each pass. Drums drive it on: floor toms pounding the eighths, a snare cracking on 2 and 4 with ghost notes between,
+and a snare roll that swells into a crash at the end of every pass. The hacking game has its own track, **"Trace"** (`scheduleHackBar`):
 digital and slightly anxious at 104 beats a minute over Am - F - Dm - E, a pulse-wave arpeggio streaming through each chord in
 sixteenths, a sub-bass pulsing on the eighths, a soft tick like the trace counting, a faintly detuned pad drifting uneasily, little
 glitch blips at random and, every fourth bar, a rising filter sweep; a little under the country tracks, below the board's own cues. Every string is
