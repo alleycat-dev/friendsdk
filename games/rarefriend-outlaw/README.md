@@ -362,7 +362,7 @@ for the last ten), and a parked one with its time running shows its seconds over
       HP badge drops by the full hit), then the heal: the badge ticks back
       up with a short green "+1" floating over it.
     - **Whale:** HP 3, strikes back for 8. Few HP, big hits.
-    - **Secure Chip:** strikes back for 2. HP 6 on boards 1 to 4, 8 on 5 to
+    - **Secure Chip:** strikes back for 1 (finding it is the hard part, not surviving it). HP 6 on boards 1 to 4, 8 on 5 to
       8, 10 on 9 to 12. From board 7 on it sits in a **vault ring** of
       defenders.
   - **Cold Storage** is neither defender nor attacker. It cannot be
@@ -597,18 +597,18 @@ for the last ten), and a parked one with its time running shows its seconds over
 
   | # | Outlaw | Twist | Tier | Board | Integrity | Defenders (F/A/V/W) | Attackers (B/H/R/G) | Cold | Specials | Slots | Virus (steps / bite) | Trace | Bot wins |
   | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-  | 1 | Rugpuller | Rug Pull | Rookie | 7 × 7 | 10 | 1/1/0/0 | 1/0/1/0 | 0 | 4 + 0 | 2 | none | 17 | pending |
-  | 2 | Pig Butcher | Pig Butchering | Novice | 7 × 7 | 12 | 1/1/0/1 | 1/0/1/0 | 0 | 8 + 1 | 3 → 2 → 1 | every 2 / 4 | 19 | pending |
-  | 3 | Exit Scammer | Exit Scam | Seasoned | 7 × 7 | 13 | 1/1/1/0 | 1/1/1/0 | 1 | 5 + 1 | 2 | every 2 / 5 | 20 | pending |
-  | 4 | Wallet Drainer | Wallet Drainer | Hardened | 8 × 8 | 14 | 1/2/1/1 | 1/1/1/1 | 1 | 5 + 1 | 2 | every 2 / 5 | 21 | pending |
-  | 5 | Pumper & Dumper | Pump and Dump | Veteran | 8 × 8 | 15 | 2/2/1/0 | 2/1/1/1 | 1 | 6 + 1 | 2 | every 2 / 6 | 25 | pending |
-  | 6 | Honeypot | Honeypot Farm | Expert | 8 × 8 | 15 | 2/2/1/1 | 2/1/1/1 | 1 | 0 + 9 | 2 | every 2 / 6 | 26 | pending |
-  | 7 | Black Hat Hacker | Botnet | Elite | 9 × 9 | 20 | 2/2/1/1 | 2/1/2/2 | 1 | 8 + 1 | 3 | 3 Viruses, every 2 / 6 | 26 | pending |
-  | 8 | Mrs. Sybil | Sybil Attack | Master | 9 × 9 | 19 | 2/3/1/1 | 2/1/2/2 | 1 | 6 + 1 | 3 | every move / 7 | 26 | pending |
-  | 9 | Front Runner | Front-Running | Champion | 10 × 10 | 19 | 3/3/2/1 | 2/1/3/2 | 2 | 7 + 1 | 3 | every move / 7 | 26 | pending |
-  | 10 | Sandwich Bot | Sandwich Attack | Legend | 10 × 10 | 19 | 3/3/2/2 | 2/1/3/2 | 2 | 7 + 1 | 3 | every move / 8 | 26 | pending |
-  | 11 | Dr. Ponzi | Ponzi Scheme | Mythic | pyramid, 36 of 11 × 11 | 17 | 2/2/1/1 | 1/0/2/1 | 1 | 5 + 1 | 3 | none | 24 | pending |
-  | 12 | The Liquidator | Margin Call | Boss | 11 × 11 | 20 (as Equity %) | 3/4/2/2 | 3/1/4/3 | 2 | 9 + 1 | 3 | every move / 9 | 27 | pending |
+  | 1 | Rugpuller | Rug Pull | Rookie | 7 × 7 | 8 | 1/1/0/0 | 1/0/1/0 | 0 | 4 + 0 | 2 | none | 17 | pending |
+  | 2 | Pig Butcher | Pig Butchering | Novice | 7 × 7 | 10 | 1/1/0/1 | 1/0/1/0 | 0 | 8 + 1 | 3 → 2 → 1 | every 2 / 4 | 19 | pending |
+  | 3 | Exit Scammer | Exit Scam | Seasoned | 7 × 7 | 11 | 1/1/1/0 | 1/1/1/0 | 1 | 5 + 1 | 2 | every 2 / 5 | 20 | pending |
+  | 4 | Wallet Drainer | Wallet Drainer | Hardened | 8 × 8 | 12 | 1/2/1/1 | 1/1/1/1 | 1 | 5 + 1 | 2 | every 2 / 5 | 21 | pending |
+  | 5 | Pumper & Dumper | Pump and Dump | Veteran | 8 × 8 | 12 | 2/2/1/0 | 2/1/1/1 | 1 | 6 + 1 | 2 | every 2 / 6 | 25 | pending |
+  | 6 | Honeypot | Honeypot Farm | Expert | 8 × 8 | 12 | 2/2/1/1 | 2/1/1/1 | 1 | 0 + 9 | 2 | every 2 / 6 | 26 | pending |
+  | 7 | Black Hat Hacker | Botnet | Elite | 9 × 9 | 17 | 2/2/1/1 | 2/1/2/2 | 1 | 8 + 1 | 3 | 3 Viruses, every 2 / 6 | 26 | pending |
+  | 8 | Mrs. Sybil | Sybil Attack | Master | 9 × 9 | 16 | 2/3/1/1 | 2/1/2/2 | 1 | 6 + 1 | 3 | every move / 7 | 26 | pending |
+  | 9 | Front Runner | Front-Running | Champion | 10 × 10 | 15 | 3/3/2/1 | 2/1/3/2 | 2 | 7 + 1 | 3 | every move / 7 | 26 | pending |
+  | 10 | Sandwich Bot | Sandwich Attack | Legend | 10 × 10 | 15 | 3/3/2/2 | 2/1/3/2 | 2 | 7 + 1 | 3 | every move / 8 | 26 | pending |
+  | 11 | Dr. Ponzi | Ponzi Scheme | Mythic | pyramid, 36 of 11 × 11 | 13 | 2/2/1/1 | 1/0/2/1 | 1 | 5 + 1 | 3 | none | 24 | pending |
+  | 12 | The Liquidator | Margin Call | Boss | 11 × 11 | 16 (as Equity %) | 3/4/2/2 | 3/1/4/3 | 2 | 9 + 1 | 3 | every move / 9 | 27 | pending |
 
   The bot is a careful player that sees only what a player sees (and, like
   a player, remembers the readings a Rug Pull turned face down): it reads

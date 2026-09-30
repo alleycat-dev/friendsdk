@@ -105,7 +105,7 @@ export type WalletTier = Readonly<{
 
 // Damage runs heavier than Integrity (Integrity was raised by half, strike-backs doubled; bites were then halved back), so every hit is a bigger share
 // of what you have and the block reward tops you up rather than healing you whole.
-const DEFENDERS = (chip: number) => ({ wall: { hp: 6, atk: 2 }, alarm: { hp: 3, atk: 4 }, validator: { hp: 4, atk: 2 }, whale: { hp: 3, atk: 8 }, chip: { hp: chip, atk: 2 } });
+const DEFENDERS = (chip: number) => ({ wall: { hp: 6, atk: 2 }, alarm: { hp: 3, atk: 4 }, validator: { hp: 4, atk: 2 }, whale: { hp: 3, atk: 8 }, chip: { hp: chip, atk: 1 } });
 /** The attackers' instant effects: what a Difficulty Bomb and a Reentrancy Attack take when uncovered, and how many moves a Gas
  * Spike makes flips cost GAS_COST trace. */
 export const BOMB_DAMAGE = 3, REENTRANCY_DAMAGE = 2, FORK_DAMAGE = 2, GAS_MOVES = 2, GAS_COST = 2;
@@ -140,29 +140,29 @@ const C = (wall: number, alarm: number, validator: number, whale: number, bomb: 
  * a vault ring with a third program slot. The Integrity and trace were tuned with practice/simulate.mjs so the simulated player's win
  * rate falls from the first board to the last (the comment on each row). */
 export const WALLET: readonly WalletTier[] = [
-  { ...BASE, twist: "rugpull", firewallLine: true, name: "Rookie", size: 7, grit: 10, minChipDistance: 4, traceLimit: 17, viruses: 0, virusEvery: 2, virusBite: 4,
+  { ...BASE, twist: "rugpull", firewallLine: true, name: "Rookie", size: 7, grit: 8, minChipDistance: 4, traceLimit: 17, viruses: 0, virusEvery: 2, virusBite: 4,
     counts: C(1, 1, 0, 0, 1, 0, 1, 0, 0, 4, 0), defenders: DEFENDERS(6) }, // 1: bot wins pending (rescaled)
-  { ...BASE, twist: "butchering", firewallLine: true, slots: 3, name: "Novice", size: 7, grit: 12, minChipDistance: 4, traceLimit: 19, virusEvery: 2, virusBite: 4,
+  { ...BASE, twist: "butchering", firewallLine: true, slots: 3, name: "Novice", size: 7, grit: 10, minChipDistance: 4, traceLimit: 19, virusEvery: 2, virusBite: 4,
     counts: C(1, 1, 0, 1, 1, 0, 1, 0, 0, 8, 1), defenders: DEFENDERS(6) }, // 2: fattened (8 programs, 3 slots); bot wins pending (rescaled)
-  { ...BASE, twist: "exitscam", firewallLine: true, name: "Seasoned", size: 7, grit: 13, minChipDistance: 5, traceLimit: 20, virusEvery: 2, virusBite: 5,
+  { ...BASE, twist: "exitscam", firewallLine: true, name: "Seasoned", size: 7, grit: 11, minChipDistance: 5, traceLimit: 20, virusEvery: 2, virusBite: 5,
     counts: C(1, 1, 1, 0, 1, 1, 1, 0, 1, 5, 1), defenders: DEFENDERS(6) }, // 3: bot wins pending (rescaled)
-  { ...BASE, twist: "drainer", firewallLine: true, name: "Hardened", size: 8, grit: 14, minChipDistance: 5, traceLimit: 21, virusEvery: 2, virusBite: 5,
+  { ...BASE, twist: "drainer", firewallLine: true, name: "Hardened", size: 8, grit: 12, minChipDistance: 5, traceLimit: 21, virusEvery: 2, virusBite: 5,
     counts: C(1, 2, 1, 1, 1, 1, 1, 1, 1, 5, 1), defenders: DEFENDERS(6) }, // 4: bot wins pending (rescaled)
-  { ...BASE, twist: "pumpdump", firewallLine: true, guaranteed: ["flashloan", "lowentropy", "staking"], name: "Veteran", size: 8, grit: 15, minChipDistance: 6, traceLimit: 25, virusEvery: 2, virusBite: 6,
+  { ...BASE, twist: "pumpdump", firewallLine: true, guaranteed: ["flashloan", "lowentropy", "staking"], name: "Veteran", size: 8, grit: 12, minChipDistance: 6, traceLimit: 25, virusEvery: 2, virusBite: 6,
     counts: C(2, 2, 1, 0, 2, 1, 1, 1, 1, 6, 1), defenders: DEFENDERS(8) }, // 5: bot wins pending (rescaled)
-  { ...BASE, twist: "honeyfarm", firewallLine: true, name: "Expert", size: 8, grit: 15, minChipDistance: 6, traceLimit: 26, virusEvery: 2, virusBite: 6,
+  { ...BASE, twist: "honeyfarm", firewallLine: true, name: "Expert", size: 8, grit: 12, minChipDistance: 6, traceLimit: 26, virusEvery: 2, virusBite: 6,
     counts: C(2, 2, 1, 1, 2, 1, 1, 1, 1, 0, 9), defenders: DEFENDERS(8) }, // 6: all nine specials are Honeypots; bot wins pending (rescaled)
-  { ...BASE, twist: "botnet", firewallLine: true, vault: true, slots: 3, guaranteed: ["antivirus", "antivirus", "antivirus", "airdrop", "airdrop"], excluded: ["antivirus", "airdrop"], name: "Elite", size: 9, grit: 20, minChipDistance: 7, traceLimit: 26, viruses: 3, virusEvery: 2, virusBite: 6,
+  { ...BASE, twist: "botnet", firewallLine: true, vault: true, slots: 3, guaranteed: ["antivirus", "antivirus", "antivirus", "airdrop", "airdrop"], excluded: ["antivirus", "airdrop"], name: "Elite", size: 9, grit: 17, minChipDistance: 7, traceLimit: 26, viruses: 3, virusEvery: 2, virusBite: 6,
     counts: C(2, 2, 1, 1, 2, 1, 2, 2, 1, 8, 1), defenders: DEFENDERS(8) }, // 7: three Viruses, eight programs (3 Antivirus + 2 Airdrop + 3 others); bot wins pending (rescaled)
-  { ...BASE, twist: "sybil", firewallLine: true, vault: true, slots: 3, guaranteed: ["halving", "halving"], name: "Master", size: 9, grit: 19, minChipDistance: 7, traceLimit: 26, virusEvery: 1, virusBite: 7,
+  { ...BASE, twist: "sybil", firewallLine: true, vault: true, slots: 3, guaranteed: ["halving", "halving"], name: "Master", size: 9, grit: 16, minChipDistance: 7, traceLimit: 26, virusEvery: 1, virusBite: 7,
     counts: C(2, 3, 1, 1, 2, 1, 2, 2, 1, 6, 1), defenders: DEFENDERS(8) }, // 8: bot wins pending (rescaled)
-  { ...BASE, twist: "frontrun", firewallLine: true, vault: true, slots: 3, name: "Champion", size: 10, grit: 19, minChipDistance: 8, traceLimit: 26, virusEvery: 1, virusBite: 7,
+  { ...BASE, twist: "frontrun", firewallLine: true, vault: true, slots: 3, name: "Champion", size: 10, grit: 15, minChipDistance: 8, traceLimit: 26, virusEvery: 1, virusBite: 7,
     counts: C(3, 3, 2, 1, 2, 1, 3, 2, 2, 7, 1), defenders: DEFENDERS(10) }, // 9: bot wins pending (rescaled)
-  { ...BASE, twist: "sandwich", firewallLine: true, vault: true, slots: 3, guaranteed: ["lowslippage", "lowslippage", "lowslippage"], name: "Legend", size: 10, grit: 19, minChipDistance: 8, traceLimit: 26, virusEvery: 1, virusBite: 8,
+  { ...BASE, twist: "sandwich", firewallLine: true, vault: true, slots: 3, guaranteed: ["lowslippage", "lowslippage", "lowslippage"], name: "Legend", size: 10, grit: 15, minChipDistance: 8, traceLimit: 26, virusEvery: 1, virusBite: 8,
     counts: C(3, 3, 2, 2, 2, 1, 3, 2, 2, 7, 1), defenders: DEFENDERS(10) }, // 10: bot wins pending (rescaled)
-  { ...BASE, twist: "ponzi", pyramid: true, firewallLine: true, vault: true, slots: 3, excluded: ["halving"], guaranteed: ["investors", "investors"], name: "Mythic", size: 11, grit: 17, minChipDistance: 3, traceLimit: 24, viruses: 0, virusEvery: 1, virusBite: 8,
+  { ...BASE, twist: "ponzi", pyramid: true, firewallLine: true, vault: true, slots: 3, excluded: ["halving"], guaranteed: ["investors", "investors"], name: "Mythic", size: 11, grit: 13, minChipDistance: 3, traceLimit: 24, viruses: 0, virusEvery: 1, virusBite: 8,
     counts: C(2, 2, 1, 1, 1, 0, 2, 1, 1, 5, 1), defenders: DEFENDERS(10) }, // 11: a 36-tile pyramid (11/9/7/5/3/1); bot wins pending (rescaled)
-  { ...BASE, twist: "margincall", firewallLine: true, vault: true, slots: 3, name: "Boss", size: 11, grit: 20, minChipDistance: 9, traceLimit: 27, virusEvery: 1, virusBite: 9,
+  { ...BASE, twist: "margincall", firewallLine: true, vault: true, slots: 3, name: "Boss", size: 11, grit: 16, minChipDistance: 9, traceLimit: 27, virusEvery: 1, virusBite: 9,
     counts: C(3, 4, 2, 2, 3, 1, 4, 3, 2, 9, 1), defenders: DEFENDERS(10) }, // 12: ten programs (nine tiles and a Honeypot); Integrity is Equity, 20 points = 100% (so 5% is a point); bot wins pending (rescaled)
 ];
 /** The tier for the outlaw at `level` (0-based position in the wanted list), the last tier beyond the list. */
