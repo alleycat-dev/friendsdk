@@ -1,7 +1,7 @@
 // Rarefriend Outlaw's sound: spaghetti-Western cues synthesized from code with the Web Audio API (no recordings, no samples).
 //
 // The palette: a plucked, twangy guitar string (Karplus-Strong), a whistle with a slow vibrato, a whip crack, wood-block hoofbeats,
-// a brassy mariachi trumpet, a low anvil thud, a hollow bump and a laser "pew" with a whistling ricochet, all sent through a short spring-reverb
+// a brassy mariachi trumpet, a low anvil thud, a hollow bump and a low laser blast with recoil and a canyon echo, all sent through a short spring-reverb
 // echo. Like the SDK's sound kit: creating the player makes no AudioContext; `unlock()` must be called from a player gesture;
 // muted, locked or hidden players drop cues instead of queueing them.
 
@@ -11,7 +11,7 @@ export const SOUND_IDS = ["laser", "hoof", "bump", "showdown", "flip", "smash", 
 export type SoundId = (typeof SOUND_IDS)[number];
 /** What each cue is for, for the preview page and the README. */
 export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
-  laser: "Laser Gun shot: a pew with a whistling ricochet",
+  laser: "Laser Gun shot: a low energy blast with the gun's recoil (a kick and a clack) and a canyon echo",
   hoof: "One galloping stride of a riding horse: four hoofbeats, ba-da-da-DUM (played stride after stride)",
   flip: "A hacking-game tile flip: a guitar pluck, stepping through an A-minor scale",
   showdown: "Tumbleweed time: the first time a new outlaw comes near (as its red arrow appears): wind, a distant bell, a lone whistle and a trembling twang",
@@ -223,14 +223,26 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
   const o = placed(base, t, options), { ctx } = o;
   switch (id) {
     case "laser": {
-      // The pew: a square wave diving from high to low...
-      const osc = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
-      osc.type = "square"; osc.frequency.setValueAtTime(1900, t); osc.frequency.exponentialRampToValueAtTime(260, t + 0.16);
-      lp.type = "lowpass"; lp.frequency.value = 3500;
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.22, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-      osc.connect(lp).connect(g); send(o, g, 0.25); osc.start(t); osc.stop(t + 0.2);
-      // ...then the ricochet, the classic Western "pee-yoo" whistling off a rock.
-      whistle(o, t + 0.07, 3100, 1500, 0.42, 0.09);
+      // A low energy shot: the gun kicks back (a punchy low thump and a mechanical clack), a deep "vwum" of the beam dives down, and
+      // the shot echoes off the canyon walls a few times, each repeat darker and quieter.
+      const shot = ctx.createGain(), echo = ctx.createDelay(1), feedback = ctx.createGain(), dark = ctx.createBiquadFilter(), wetOut = ctx.createGain();
+      echo.delayTime.value = 0.17; feedback.gain.value = 0.42; dark.type = "lowpass"; dark.frequency.value = 1400; wetOut.gain.value = 0.55;
+      shot.connect(o.dry); shot.connect(echo); echo.connect(dark).connect(feedback).connect(echo); dark.connect(wetOut); send(o, wetOut, 0.3);
+      const into: Out = { ctx, dry: shot, wet: o.wet };
+      // Recoil: the kick and the clack of the mechanism.
+      thud(into, t, 58, 0.4);
+      const clack = noiseSource(ctx, 0.05), cf = ctx.createBiquadFilter(), cg = ctx.createGain();
+      cf.type = "bandpass"; cf.frequency.value = 1900; cf.Q.value = 3;
+      cg.gain.setValueAtTime(0.0001, t); cg.gain.exponentialRampToValueAtTime(0.22, t + 0.002); cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+      clack.connect(cf).connect(cg).connect(shot); clack.start(t); clack.stop(t + 0.05);
+      // The beam: a sawtooth and a square a fifth apart, diving from a low whine to a growl through a closing filter.
+      for (const [type, from, to, level] of [["sawtooth", 620, 110, 0.2], ["square", 930, 165, 0.1]] as const) {
+        const osc = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+        osc.type = type; osc.frequency.setValueAtTime(from, t); osc.frequency.exponentialRampToValueAtTime(to, t + 0.22);
+        lp.type = "lowpass"; lp.Q.value = 6; lp.frequency.setValueAtTime(3200, t); lp.frequency.exponentialRampToValueAtTime(400, t + 0.24);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(level, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+        osc.connect(lp).connect(g).connect(shot); osc.start(t); osc.stop(t + 0.28);
+      }
       break;
     }
     case "hoof": {
@@ -462,7 +474,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 0.9, bark: 0.7, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 0.6, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 0.7, hoof: 0.5, flip: 1, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 0.6, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 1.3, hoof: 0.5, flip: 1, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {
