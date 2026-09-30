@@ -739,7 +739,8 @@ for the last ten), and a parked one with its time running shows its seconds over
   and turned downward in front facing down.
 - **Capture:** for now only butterflies are catchable, and only with the
   **Butterfly Net**, which is not sold and not owned at the start: any outlaw
-  drops one 5% of the time when neutralized (`NET_DROP_CHANCE`). It is drawn
+  drops one as an **Uncommon** find, 25% of the time when neutralized (`NET_DROP_CHANCE`, the chance of an Uncommon keepsake),
+  shown in the Uncommon colour among its belongings. It is drawn
   with a wooden handle, a metal hoop holding the net's mouth and a bag of fine
   mesh. You swing it, not throw it: with it held, `Space` within 30 world
   units of a butterfly (`NET_REACH`) catches it: an "Animal
@@ -849,7 +850,7 @@ The Centralised Exchange sells:
 | Permanent Trojan Horse | 150 OP | Simulated. One per session; it appears beside the Friend. (For playtesting, `PLAYTEST_START_HORSE` in `index.tsx` starts every game with it, waiting left of the start; it is off in the released game.) |
 | Temporary Trojan Horse | 10 OP | Simulated; stackable; 30 seconds of riding each. |
 
-The Butterfly Net is not sold: any outlaw drops one 5% of the time when neutralized.
+The Butterfly Net is not sold: any outlaw drops one as an Uncommon find, 25% of the time when neutralized.
 
 **Selling keepsakes.** The Exchange buys any keepsake for **Dust**: 1 OP each (`DUST_OP`), one at a time, from a "Sell keepsakes"
 list below its wares. A cosmetic keepsake you sell comes off if you were wearing it and held no other.

@@ -1180,7 +1180,8 @@ const NPC_RADIUS = 6; // world units, for walkability checks
 const CONTACT = 14; // world units; walking into an outlaw lets it rob you
 const INSIDE_ODDS = 0.25; // chance a new outlaw wave holes up inside a building
 const NET_REACH = 30; // world units; a swung net catches a butterfly this close
-const NET_DROP_CHANCE = 0.05; // any neutralized outlaw drops a Butterfly Net this often
+/** An Uncommon find: any neutralized outlaw drops a Butterfly Net this often, the chance of an Uncommon keepsake. */
+const NET_DROP_CHANCE = 0.25;
 const CLEAVER_REACH = 34; // world units; the Cleaver hits an animal this close
 const WARN_RANGE = 420; // world units; off-screen outlaws this close get an edge arrow
 const CONTACT_COOLDOWN = 3000; // ms of immunity after a wallet crack ends or a hacker slips away
@@ -5417,7 +5418,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
               <span><strong>{droppedKeepsake.roll.name}</strong> <em className="outlaw-rarity-tag">{droppedKeepsake.roll.rarity}</em>
                 <small>Keepsake{droppedKeepsake.roll.detail ? ` · ${droppedKeepsake.roll.detail}` : ""}</small></span>
               <button type="button" className="rf-frame-primary" disabled={droppedKeepsake.taken} onClick={() => impound("keepsake")}>{droppedKeepsake.taken ? "Impounded" : "Impound"}</button></div>}
-            {net && <div className="outlaw-item"><span><strong>Butterfly Net</strong><small>A lucky find {"·"} swing it next to a butterfly to catch it</small></span>
+            {net && <div className="outlaw-item outlaw-rarity" style={{ ["--rarity" as string]: RARITY_COLOUR[KEEPSAKE_RARITY.Uncommon] }}>
+              <span><strong>Butterfly Net</strong> <em className="outlaw-rarity-tag">Uncommon</em><small>Swing it next to a butterfly to catch it</small></span>
               <button type="button" className="rf-frame-primary" disabled={net === "taken"} onClick={() => impound("net")}>{net === "taken" ? "Impounded" : "Impound"}</button></div>}
             {/* What it stole from you, one row each, in grey. */}
             {stolen.map((item, index) => <div key={`${item}-${index}`} className="outlaw-item outlaw-rarity" style={{ ["--rarity" as string]: STOLEN_COLOUR }}>
