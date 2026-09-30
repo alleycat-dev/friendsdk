@@ -3221,7 +3221,7 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
   // A Halving's golden sheen: the half it named and when it appeared, so it can fade out after HALVING_SHEEN_MS.
   const halvingSeen = useRef<object | null>(null), halvingAnim = useRef<{ half: BoardHalf; at: number } | null>(null);
   const rewardSeen = useRef<object | null>(null), rewardAnim = useRef<{ tile: number; chain: number; amount: number; at: number } | null>(null);
-  const twistSeen = useRef<object | null>(null), twistAnim = useRef<{ label: string; at: number } | null>(null);
+  const twistSeen = useRef<object | null>(null), twistAnim = useRef<{ label: string; detail?: string; at: number } | null>(null);
   const biteSeen = useRef<object | null>(null), biteAnim = useRef<{ tile: number; amount: number; at: number } | null>(null);
   // Where the program slots were last drawn: a click runs one, a right-click discards it.
   const slotBoxes = useRef<{ x: number; y: number; w: number; h: number }[]>([]);
@@ -3528,7 +3528,7 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
       }
       // A twist striking (RUGPULL!!!, BUTCHERED!!!, ...): big red letters over the board for two seconds, popping in unless motion is
       // reduced, shrunk to fit the board's width. Twists are never announced before this moment.
-      if (current.twistEvent && current.twistEvent !== twistSeen.current) { twistSeen.current = current.twistEvent; twistAnim.current = { label: current.twistEvent.label, at: now }; }
+      if (current.twistEvent && current.twistEvent !== twistSeen.current) { twistSeen.current = current.twistEvent; twistAnim.current = { label: current.twistEvent.label, detail: current.twistEvent.detail, at: now }; }
       const struck = twistAnim.current, sinceTwist = struck ? (now - struck.at) / 1000 : 9;
       if (struck && sinceTwist < 2.2) {
         const pop = still ? 1 : Math.min(1, 0.6 + sinceTwist * 2), fade = sinceTwist > 1.8 ? (2.2 - sinceTwist) / 0.4 : 1;
@@ -3536,6 +3536,11 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
         ctx.textAlign = "center"; ctx.font = "900 72px system-ui, sans-serif"; ctx.lineJoin = "round";
         const fit = Math.min(1, 860 / ctx.measureText(struck.label).width); ctx.scale(pop * fit, pop * fit);
         ctx.lineWidth = 10; ctx.strokeStyle = "#000"; ctx.strokeText(struck.label, 0, 24); ctx.fillStyle = "#e0321f"; ctx.fillText(struck.label, 0, 24);
+        // What the twist just did, in a line under the shout (PUMPED!!!: your Power is up).
+        if (struck.detail) {
+          ctx.font = "bold 24px ui-monospace, monospace"; ctx.lineWidth = 6;
+          ctx.strokeText(struck.detail, 0, 70); ctx.fillStyle = "#fff"; ctx.fillText(struck.detail, 0, 70);
+        }
         ctx.restore();
       }
       // A block reward: "Chain size 8. Integrity +1" pops in green over the tile you acted on and floats up (still under reduced

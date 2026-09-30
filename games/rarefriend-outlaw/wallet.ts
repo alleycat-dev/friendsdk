@@ -457,13 +457,13 @@ export type WalletState = {
   halved?: { half: BoardHalf };
   /** Twists are never announced beforehand: each moment one first bites fires an event, once (its key goes in `fired`), and the
    * latest event's lettering is shown over the board. A new object per event, so the screen can tell a fresh one. */
-  fired: readonly string[]; twistEvent?: { label: string };
+  fired: readonly string[]; twistEvent?: { label: string; detail?: string };
   lostBy?: WalletLoss;
 };
 /** Fire a twist event (once per key): big lettering over the board. `s` is a working copy. */
-function fire(s: WalletState, key: string, label: string) {
+function fire(s: WalletState, key: string, label: string, detail?: string) {
   if (s.fired.includes(key)) return;
-  s.fired = [...s.fired, key]; s.twistEvent = { label };
+  s.fired = [...s.fired, key]; s.twistEvent = detail ? { label, detail } : { label };
 }
 export type WalletLoss = "grit" | "virus" | "trace" | "giveUp";
 /** The reason for a loss, in words, for the message over the wiped board. */
@@ -958,7 +958,7 @@ function walletReduceInner(state: WalletState, action: WalletAction): WalletStat
       const climb = pyramidFlipCost(state, action.index), gas = gasMovesLeft(state) > 0 ? GAS_COST - 1 : 0;
       let trace = s.trace + climb + fee + gas;
       // Pump and Dump: the pump comes with the first flip (Power 4); the dump comes at 60% of the trace (Power 1), in afterMove.
-      if (tier.twist === "pumpdump" && !s.fired.includes("pump")) { s.power = 4; fire(s, "pump", "PUMPED!!!"); }
+      if (tier.twist === "pumpdump" && !s.fired.includes("pump")) { s.power = 4; fire(s, "pump", "PUMPED!!!", "Your Power is pumped up to 4"); }
       switch (tile.kind) {
         case "empty": {
           text = `Empty sector. Its pips say ${readingText(displayReading(s, tile))}.`;
