@@ -21,7 +21,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   strike: "Losing Integrity in a hack to a bomb, a bite or the like (a hit's instant strike-back is covered by the smash): an anvil thud under a low twang",
   twist: "A twist striking (RUGPULL!!!): whip crack, a falling whistle and a trembling guitar chord",
   win: "A cracked wallet: a mariachi trumpet flourish over a strummed chord",
-  meow: "Cat: mee-ow, the mouth opening wide and closing again",
+  meow: "Cat: a low, raspy tomcat's mrrrAOW, a little vicious",
   bark: "Dog: two full barks from the chest, woof, woof",
   moo: "Cow: a long, low moo",
   oink: "Pig: a few nasal grunts",
@@ -299,27 +299,36 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
     }
     // ----- Animals: each as it sounds in life -----
     case "meow": {
-      // "Mee-ow" as a mouth makes it: closed and nasal (m), opening wide and bright (ee-ah), then rounding and closing dark (ow). A
-      // warm voice around 550 Hz with a gentle rise and fall and a slight tremble, through a "mouth" low-pass that opens and closes,
-      // with two soft, broad vowel resonances (no narrow peaks, which squeal).
-      const seconds = 0.72, mouth = ctx.createBiquadFilter(), g = ctx.createGain(), mix = ctx.createGain(), vib = ctx.createOscillator(), vibDepth = ctx.createGain();
-      const pitch: [number, number][] = [[0, 500], [0.18, 640], [0.4, 610], [0.72, 420]];
-      mouth.type = "lowpass"; mouth.Q.value = 1.2;
-      mouth.frequency.setValueAtTime(550, t); mouth.frequency.linearRampToValueAtTime(2600, t + 0.2); mouth.frequency.linearRampToValueAtTime(2200, t + 0.38); mouth.frequency.linearRampToValueAtTime(650, t + seconds);
-      vib.frequency.value = 6; vibDepth.gain.value = 9; vib.connect(vibDepth);
-      for (const [type, level] of [["sawtooth", 0.5], ["triangle", 0.7]] as const) {
+      // A tomcat's "mrrrAOW": a low growl rolling in, then the mouth opening wide and closing again, the voice low and full around
+      // 400 Hz, raspy (a rattle in the throat and breath through it) and a bit vicious, trailing off in a hiss.
+      const seconds = 0.85, mouth = ctx.createBiquadFilter(), g = ctx.createGain(), mix = ctx.createGain(), vib = ctx.createOscillator(), vibDepth = ctx.createGain();
+      const pitch: [number, number][] = [[0, 300], [0.12, 360], [0.3, 480], [0.5, 450], [0.85, 290]];
+      mouth.type = "lowpass"; mouth.Q.value = 1.4;
+      mouth.frequency.setValueAtTime(420, t); mouth.frequency.linearRampToValueAtTime(700, t + 0.12); mouth.frequency.linearRampToValueAtTime(2400, t + 0.32);
+      mouth.frequency.linearRampToValueAtTime(2000, t + 0.5); mouth.frequency.linearRampToValueAtTime(520, t + seconds);
+      vib.frequency.value = 5; vibDepth.gain.value = 7; vib.connect(vibDepth);
+      for (const [type, level] of [["sawtooth", 0.75], ["triangle", 0.5], ["square", 0.15]] as const) {
         const osc = ctx.createOscillator(), og = ctx.createGain();
         osc.type = type; osc.frequency.setValueAtTime(pitch[0][1], t); for (const [at, f] of pitch.slice(1)) osc.frequency.linearRampToValueAtTime(f, t + at);
         vibDepth.connect(osc.frequency); og.gain.value = level; osc.connect(og).connect(mix); osc.start(t); osc.stop(t + seconds + 0.05);
       }
-      const direct = ctx.createGain(); direct.gain.value = 0.5; mix.connect(direct).connect(mouth);
-      for (const [points, q, level] of [[[[0, 700], [0.2, 1300], [0.4, 1150], [0.72, 600]], 2, 0.9], [[[0, 1500], [0.2, 2000], [0.4, 1800], [0.72, 1000]], 2.5, 0.45]] as const) {
+      // Breath through the throat, strongest in the growl and the hiss at the end.
+      const air = noiseSource(ctx, seconds + 0.1), ag = ctx.createGain();
+      ag.gain.setValueAtTime(0.35, t); ag.gain.linearRampToValueAtTime(0.18, t + 0.3); ag.gain.linearRampToValueAtTime(0.45, t + seconds);
+      air.connect(ag).connect(mix); air.start(t); air.stop(t + seconds + 0.1);
+      const direct = ctx.createGain(); direct.gain.value = 0.6; mix.connect(direct).connect(mouth);
+      for (const [points, q, level] of [[[[0, 450], [0.3, 1100], [0.5, 1000], [0.85, 480]], 2, 1], [[[0, 1200], [0.3, 1800], [0.5, 1650], [0.85, 900]], 2.5, 0.45]] as const) {
         const band = ctx.createBiquadFilter(), bg = ctx.createGain();
         band.type = "bandpass"; band.Q.value = q; band.frequency.setValueAtTime(points[0][1], t); for (const [at, f] of points.slice(1)) band.frequency.linearRampToValueAtTime(f, t + at);
         bg.gain.value = level; mix.connect(band).connect(bg).connect(mouth);
       }
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.14, t + 0.07); g.gain.setValueAtTime(0.14, t + 0.45); g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
-      mouth.connect(g); send(o, g, 0.2); vib.start(t); vib.stop(t + seconds + 0.05);
+      // The rasp: the level rattles, hard in the growl, lighter as the mouth opens, then rough again as it closes.
+      const rattle = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
+      lfo.frequency.value = 34; depth.gain.setValueAtTime(0.45, t); depth.gain.linearRampToValueAtTime(0.2, t + 0.35); depth.gain.linearRampToValueAtTime(0.4, t + seconds);
+      rattle.gain.value = 0.6; lfo.connect(depth).connect(rattle.gain);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.05); g.gain.linearRampToValueAtTime(0.12, t + 0.3); g.gain.setValueAtTime(0.12, t + 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+      mouth.connect(rattle).connect(g); send(o, g, 0.2);
+      for (const node of [vib, lfo]) { node.start(t); node.stop(t + seconds + 0.05); }
       break;
     }
     case "bark": {
@@ -566,7 +575,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 }
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
-  meow: 0.9, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
+  meow: 1, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
   slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
