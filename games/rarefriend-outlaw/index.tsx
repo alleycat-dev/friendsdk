@@ -1180,8 +1180,8 @@ const NPC_RADIUS = 6; // world units, for walkability checks
 const CONTACT = 14; // world units; walking into an outlaw lets it rob you
 const INSIDE_ODDS = 0.25; // chance a new outlaw wave holes up inside a building
 const NET_REACH = 30; // world units; a swung net catches a butterfly this close
-/** An Uncommon find: any neutralized outlaw drops a Butterfly Net this often, the chance of an Uncommon keepsake. */
-const NET_DROP_CHANCE = 0.25;
+/** Any neutralized outlaw drops a Butterfly Net this often; it is listed as Uncommon since any outlaw can drop it. */
+const NET_DROP_CHANCE = 0.05;
 const CLEAVER_REACH = 34; // world units; the Cleaver hits an animal this close
 const WARN_RANGE = 420; // world units; off-screen outlaws this close get an edge arrow
 const CONTACT_COOLDOWN = 3000; // ms of immunity after a wallet crack ends or a hacker slips away

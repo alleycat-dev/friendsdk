@@ -10,7 +10,7 @@ small perk, marked **Perk** below. Perks never touch RF: the contract decides ev
 Outlaws carry no fixed belongings besides their hardware wallet (Pumper and Dumper a half each). The old fixed items are
 drops in this table now: the Cleaver (Pig Butcher, drops as the usable Cleaver), the Simple Black Hat (Black Hat Hacker), the
 Red Sweatband (Front Runner) and the Squashed Gold Coin (Sandwich Bot). The Butterfly Net is outside this table: any outlaw
-drops one as an Uncommon find, 25% of the time (the Uncommon chance).
+drops one 5% of the time, listed as Uncommon since any outlaw can drop it.
 
 ## Rarity odds
 
