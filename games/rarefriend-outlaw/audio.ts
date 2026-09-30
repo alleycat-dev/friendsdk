@@ -5,7 +5,7 @@
 // echo. Like the SDK's sound kit: creating the player makes no AudioContext; `unlock()` must be called from a player gesture;
 // muted, locked or hidden players drop cues instead of queueing them.
 
-export const SOUND_IDS = ["laser", "hoof", "bump", "showdown", "flip", "smash", "strike", "twist", "win",
+export const SOUND_IDS = ["laser", "hoof", "step", "bump", "showdown", "flip", "smash", "strike", "twist", "win",
   "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
   "roar", "growl", "yip", "dragon"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
@@ -15,6 +15,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   hoof: "One galloping stride of a riding horse: four hoofbeats, ba-da-da-DUM (played stride after stride)",
   flip: "A hacking-game tile flip: a computer bleep whose note is the chain's size, rising only as the chain grows",
   showdown: "Tumbleweed time: the first time a new outlaw comes near (as its red arrow appears): wind, a distant bell, a lone whistle and a trembling twang",
+  step: "A soft footstep on dry ground (every step while walking)",
   bump: "Walking into an outlaw (who robs you): like walking into something, a body thump and a hollow bonk",
   smash: "Hitting a defender in a hack: demolishing brickwork, a crack, crumbling stone and a thud (a bigger collapse when it breaks)",
   strike: "Losing Integrity in a hack to a bomb, a bite or the like (a hit's instant strike-back is covered by the smash): an anvil thud under a low twang",
@@ -73,6 +74,10 @@ function stringBuffer(ctx: BaseAudioContext, freq: number, seconds: number, damp
 function pluck(o: Out, t: number, freq: number, gain = 0.5, seconds = 1.6, damping = 0.996, reverb = 0.35) {
   const { ctx } = o, src = ctx.createBufferSource(), g = ctx.createGain(), tone = ctx.createBiquadFilter();
   src.buffer = stringBuffer(ctx, freq, seconds, damping);
+  // The rendered string can only sound at sampleRate / (period + 0.5) (a whole-sample delay line plus the half sample its averaging
+  // filter adds), a little off the asked pitch; playing it back a touch faster or slower puts every note exactly in tune.
+  const period = Math.max(2, Math.round(ctx.sampleRate / freq));
+  src.playbackRate.value = freq / (ctx.sampleRate / (period + 0.5));
   // A touch of body: a gentle low-pass keeps the twang from turning harsh.
   tone.type = "lowpass"; tone.frequency.value = Math.min(9000, freq * 14); tone.Q.value = 0.7;
   g.gain.setValueAtTime(gain, t); g.gain.setTargetAtTime(0, t + seconds * 0.7, seconds * 0.12);
@@ -479,6 +484,14 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       pluck(o, t + 0.01, hz(-29), 0.5, 1.2, 0.992, 0.3); // E2
       break;
     }
+    case "step": {
+      // A soft step on dry ground: a muffled scuff of grit and a faint thud of the heel, a little different every time.
+      const tone = 0.85 + Math.random() * 0.3;
+      noiseBand(o, t, 0.07, "lowpass", 900 * tone, 350 * tone, 0.7, 0.08, 0.004, 0);
+      noiseBand(o, t + 0.01, 0.04, "bandpass", 2200 * tone, 1600 * tone, 1.5, 0.02, 0.003, 0);
+      thud(o, t, 110 * tone, 0.08);
+      break;
+    }
     case "bump": {
       // Walking into something: a soft, heavy body thump, a muffled knock of wood, and a short hollow "bonk" that bounces once.
       thud(o, t, 85, 0.5);
@@ -519,7 +532,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 0.9, bark: 0.7, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 1.3, hoof: 0.5, flip: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {
@@ -568,10 +581,11 @@ const MUSIC_PATTERNS: readonly (readonly [number, number][])[] = [
   [[0, 0], [1, 2], [2, 1], [2.5, 3], [3.5, 2]],
   [[0, 0], [1.5, 1], [2, 2], [3, 3]],
 ];
-/** Whistled phrases over a pass, now and then: [bar, beat, from, to, beats long] (semitones from A4). */
-const MUSIC_WHISTLES: readonly (readonly [number, number, number, number, number][])[] = [
-  [[0, 1, 7, 7, 2], [0, 3, 5, 3, 1.5], [1, 1, 2, 2, 2.5], [2, 1, 0, 0, 1.5], [2, 3, 3, 2, 1], [3, 0, -1, -1, 3]],
-  [[0, 2, 12, 12, 1.5], [1, 0, 10, 7, 2], [2, 0, 8, 5, 2], [3, 0, 7, 4, 3.5]],
+/** Whistled phrases over a pass, now and then: [bar, beat, note, beats long] (semitones from A4), clean separate notes that each
+ * belong to their bar's chord or the A-minor scale (no slides between them). */
+const MUSIC_WHISTLES: readonly (readonly [number, number, number, number][])[] = [
+  [[0, 1, 7, 2], [0, 3, 5, 0.5], [0, 3.5, 3, 0.5], [1, 1, 2, 2.5], [2, 1, 0, 1.5], [2, 3, 3, 1], [3, 0, -1, 3]],
+  [[0, 2, 12, 1.5], [1, 0, 10, 1], [1, 1, 7, 1.5], [2, 0, 8, 1], [2, 1, 3, 1.5], [3, 0, 7, 1], [3, 1, 2, 2.5]],
 ];
 /** Schedule one bar of the ambience at time `t`: `bar` 0-3 in the cadence, `pass` counts the loops. */
 function scheduleMusicBar(o: Out, t: number, bar: number, pass: number, pattern: number) {
@@ -594,14 +608,34 @@ function scheduleMusicBar(o: Out, t: number, bar: number, pass: number, pattern:
     pluck(o, t + beat * MUSIC_BEAT + human, hz(tones[which]), 0.09 + Math.random() * 0.03, 2.4, 0.997, 0.7);
   }
   // Every third pass a distant whistle sings a phrase over the cadence; every fourth, a bell tolls far off at the top of it.
-  if (pass % 3 === 2) for (const [atBar, beat, from, to, beats] of MUSIC_WHISTLES[Math.floor(pass / 3) % MUSIC_WHISTLES.length])
-    if (atBar === bar) whistle(o, t + beat * MUSIC_BEAT, hz(from), hz(to), beats * MUSIC_BEAT, 0.05);
+  if (pass % 3 === 2) for (const [atBar, beat, note, beats] of MUSIC_WHISTLES[Math.floor(pass / 3) % MUSIC_WHISTLES.length])
+    if (atBar === bar) whistle(o, t + beat * MUSIC_BEAT, hz(note), hz(note), beats * MUSIC_BEAT * 0.95, 0.05);
   if (pass % 4 === 3 && bar === 0) for (const [f, level, ring] of [[hz(-24), 0.04, 3.5], [hz(-24) * 2.4, 0.02, 2.5]] as const) {
     const bell = ctx.createOscillator(), bg = ctx.createGain();
     bell.type = "sine"; bell.frequency.value = f;
     bg.gain.setValueAtTime(0.0001, t); bg.gain.exponentialRampToValueAtTime(level, t + 0.02); bg.gain.exponentialRampToValueAtTime(0.0001, t + ring);
     bell.connect(bg); send(o, bg, 0.9); bell.start(t); bell.stop(t + ring + 0.1);
   }
+}
+/** "Showdown Gallop", the faster, driving version while an outlaw is near: the same cadence at 112 beats a minute, a bass on the
+ * beat, short damped strums on the off-beats, a galloping shaker, and now and then a trumpet line. */
+const TENSE_BEAT = 60 / 112, TENSE_BAR = TENSE_BEAT * 4;
+/** The trumpet line over a tense pass: [bar, beat, note, beats long], semitones from A4. */
+const TENSE_RIFF: readonly (readonly [number, number, number, number])[] = [
+  [0, 0, 0, 0.5], [0, 0.5, 3, 0.5], [0, 1, 7, 1.5], [1, 0, 5, 0.5], [1, 0.5, 2, 1.5], [2, 0, 3, 0.5], [2, 0.5, 0, 1.5],
+  [3, 0, -1, 0.5], [3, 0.5, 2, 0.5], [3, 1, 7, 2],
+];
+function scheduleTenseBar(o: Out, t: number, bar: number, pass: number) {
+  const [root, tones] = MUSIC_CHORDS[bar], beat = TENSE_BEAT;
+  // Bass: the root on beats 1 and 3, the fifth on 2 and 4, picked short.
+  for (const [at, note] of [[0, root + 12], [1, root + 19], [2, root + 12], [3, root + 19]] as const) pluck(o, t + at * beat, hz(note), 0.2, 0.5, 0.985, 0.2);
+  // Damped strums on the off-beats and a push into the next bar.
+  for (const at of [0.5, 1.5, 2.5, 3.5, 3.75]) strum(o, t + at * beat, tones.slice(1, 4), at === 3.75 ? 0.05 : 0.08, 0.008, 0.22);
+  // The galloping shaker: ta-ta-TA on every beat.
+  for (let k = 0; k < 4; k++) for (const [sub, level] of [[0, 0.03], [1 / 3, 0.02], [2 / 3, 0.045]] as const)
+    noiseBand(o, t + (k + sub) * beat, 0.05, "highpass", 5000, 7000, 0.8, level, 0.002, 0.05);
+  // Every other pass, a trumpet line over it.
+  if (pass % 2 === 1) for (const [atBar, at, note, beats] of TENSE_RIFF) if (atBar === bar) trumpet(o, t + at * beat, hz(note), beats * beat * 0.9, 0.05);
 }
 /** The music's level against the sound effects: well under the animals and cues. */
 const MUSIC_LEVEL = 0.35;
@@ -616,12 +650,15 @@ export type OutlawAudio = {
   /** Music on or off (Settings), and whether the moment allows it (off during a hack): it fades in and out. */
   setMusic(on: boolean): void;
   setMusicAllowed(allowed: boolean): void;
+  /** "tense" while an outlaw is near: the music switches to its faster version at the next bar, and back. */
+  setMusicMood(mood: "calm" | "tense"): void;
   dispose(): void;
 };
 export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawAudio {
   let ctx: AudioContext | null = null, master: GainNode | null = null, out: Out | null = null;
   let level = volume, silent = muted, disposed = false;
   let musicMaster: GainNode | null = null, musicOut: Out | null = null, musicOn = true, musicAllowed = true, timer = 0, nextBar = 0, bar = 0, pass = 0, pattern = 0;
+  let mood: "calm" | "tense" = "calm", playing: "calm" | "tense" = "calm";
   const audible = () => musicOn && musicAllowed && !disposed;
   const apply = () => {
     if (master && ctx) master.gain.setTargetAtTime(silent ? 0 : level * 0.8, ctx.currentTime, 0.02);
@@ -634,9 +671,11 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
     if (!ctx || !musicOut) return;
     if (!audible()) { if (ctx.currentTime > nextBar) { clearInterval(timer); timer = 0; } return; }
     while (nextBar < ctx.currentTime + 1.2) {
+      // A change of mood takes over at the next bar, picking up the cadence where it is.
+      playing = mood;
       if (bar === 0) pattern = Math.floor(Math.random() * MUSIC_PATTERNS.length);
-      scheduleMusicBar(musicOut, nextBar, bar, pass, pattern);
-      nextBar += MUSIC_BAR; bar = (bar + 1) % MUSIC_CHORDS.length; if (bar === 0) pass++;
+      if (playing === "tense") scheduleTenseBar(musicOut, nextBar, bar, pass); else scheduleMusicBar(musicOut, nextBar, bar, pass, pattern);
+      nextBar += playing === "tense" ? TENSE_BAR : MUSIC_BAR; bar = (bar + 1) % MUSIC_CHORDS.length; if (bar === 0) pass++;
     }
   };
   const onHidden = () => { if (document.hidden && ctx?.state === "running") void ctx.suspend(); else if (!document.hidden && ctx?.state === "suspended" && !silent) void ctx.resume(); };
@@ -664,6 +703,7 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
     setVolume(value) { level = Math.max(0, Math.min(1, value)); apply(); },
     setMusic(on) { musicOn = on; apply(); },
     setMusicAllowed(allowed) { musicAllowed = allowed; apply(); },
+    setMusicMood(value) { mood = value; },
     dispose() { disposed = true; clearInterval(timer); document.removeEventListener("visibilitychange", onHidden); void ctx?.close(); ctx = null; },
   };
 }
@@ -684,13 +724,15 @@ export async function renderSequence(steps: readonly { id: SoundId; at: number; 
   return ctx.startRendering();
 }
 /** Render `passes` loops of the ambience offline, for listening without the game. */
-export async function renderMusic(passes = 4, sampleRate = 44100): Promise<AudioBuffer> {
-  const seconds = passes * MUSIC_CHORDS.length * MUSIC_BAR + 3;
+export async function renderMusic(passes = 4, sampleRate = 44100, tense = false): Promise<AudioBuffer> {
+  const seconds = passes * MUSIC_CHORDS.length * (tense ? TENSE_BAR : MUSIC_BAR) + 3;
   const ctx = new OfflineAudioContext(2, Math.ceil(seconds * sampleRate), sampleRate), master = ctx.createGain(); master.gain.value = 0.56 * MUSIC_LEVEL;
   const out = outputChain(ctx, ctx.destination, master);
   for (let pass = 0, t = 0.05; pass < passes; pass++) {
     const pattern = Math.floor(Math.random() * MUSIC_PATTERNS.length);
-    for (let bar = 0; bar < MUSIC_CHORDS.length; bar++, t += MUSIC_BAR) scheduleMusicBar(out, t, bar, pass, pattern);
+    for (let bar = 0; bar < MUSIC_CHORDS.length; bar++, t += tense ? TENSE_BAR : MUSIC_BAR) {
+      if (tense) scheduleTenseBar(out, t, bar, pass); else scheduleMusicBar(out, t, bar, pass, pattern);
+    }
   }
   return ctx.startRendering();
 }

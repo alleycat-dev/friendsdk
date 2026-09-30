@@ -44,6 +44,13 @@ const cues = await page.evaluate(async () => {
     let peak = 0, sum = 0;
     for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
     rendered.push({ id: "music-lonesome-trail", seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) }); }
+  { const buffer = await window.outlawSounds.renderMusic(4, 44100, true);
+    let peak = 0, sum = 0;
+    for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
+    rendered.push({ id: "music-showdown-gallop", seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) }); }
+  // Eight soft footsteps.
+  { const buffer = await window.outlawSounds.renderSequence([...Array(8)].map((_, k) => ({ id: "step", at: k * 0.33 })));
+    rendered.push({ id: "sequence-walking", seconds: buffer.duration, peak: 0.01, rms: 0.01, wav: base64(wavBytes(buffer)) }); }
   return rendered;
 });
 await browser.close();

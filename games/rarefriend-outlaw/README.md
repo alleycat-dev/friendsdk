@@ -1024,7 +1024,7 @@ plucked, twangy guitar string (Karplus-Strong), a whistle with vibrato, a whip c
 an anvil thud and a hollow bump, through a short spring-reverb echo. The first cues: `laser` (on every shot: a low energy blast with the gun's recoil, a kick and a mechanical clack, and a canyon echo),
 `hoof` (a galloping stride of four uneven hoofbeats, ba-da-da-DUM, every 520 ms while riding, never quite the same twice), `flip` (a computer bleep per uncovered tile, a plain square wave switched on and off like an old terminal's beep; its note is your chain's size on an A-minor pentatonic scale, so it climbs only as the chain grows and repeats the last note otherwise), `smash` (hitting a
 defender: demolishing brickwork, a crack, crumbling stone and a thud, and a bigger collapse with rubble when it breaks; its instant
-strike-back needs no sound of its own), `strike` (Integrity lost to a bomb, a bite or the like: an anvil thud under a low twang), `bump` (walking into an outlaw, who robs you: a body thump and a hollow bonk), `showdown` (tumbleweed time: the first time each new outlaw comes near, as its red arrow appears: desert wind, rustling tumbleweed, a distant bell, a lone whistle and a trembling low twang), `twist` (a twist striking: whip crack, falling whistle, trembling chord) and `win` (a cracked wallet: a mariachi
+strike-back needs no sound of its own), `strike` (Integrity lost to a bomb, a bite or the like: an anvil thud under a low twang), `step` (a soft footstep on dry ground, every 330 ms while walking on foot), `bump` (walking into an outlaw, who robs you: a body thump and a hollow bonk), `showdown` (tumbleweed time: the first time each new outlaw comes near, as its red arrow appears: desert wind, rustling tumbleweed, a distant bell, a lone whistle and a trembling low twang), `twist` (a twist striking: whip crack, falling whistle, trembling chord) and `win` (a cracked wallet: a mariachi
 flourish). Sound starts after the first click, tap or key press (browsers require it) and stops while the tab is hidden; Settings
 has **Sound on** (mute) and a volume slider.
 
@@ -1044,7 +1044,12 @@ reverb-soaked nylon-guitar arpeggio over the classic cadence Am - G - F - E at 6
 patterns per pass, slightly humanised), a soft drone on each root and a faint pad; every third pass a distant whistle sings a
 phrase over it, and every fourth a bell tolls far off. It sits well under the animals and cues (`MUSIC_LEVEL`) on its own bus, is
 laid down a second ahead by a look-ahead scheduler, rests (fading out) while a hardware wallet is being hacked, and fades back in
-afterwards. Settings has **Music on**, separate from **Sound on**; the volume slider sets both.
+afterwards. While a living outlaw is near (within 600 world units, calming again beyond 820) it switches at the next bar to
+**"Showdown Gallop"** (`scheduleTenseBar`): the same cadence at 112 beats a minute, a picked bass on the beat, short damped
+strums on the off-beats, a galloping shaker (ta-ta-TA on every beat) and, every other pass, a trumpet line. Every string is
+tuned exactly (the plucked-string synthesis is played back a touch faster or slower to land on pitch), and the whistle sings
+clean, separate notes that belong to their chords. Settings has **Music on**, separate from **Sound on**; the volume slider sets
+both.
 
 Listen without the game: build the practice pages, then open `practice/dist/sounds.html` (buttons for every cue, WAV downloads),
 or render them all to `practice/dist/wav/` with `node games/rarefriend-outlaw/tools/sounds.mjs`, which also prints each cue's
