@@ -10,7 +10,7 @@ export type SoundId = (typeof SOUND_IDS)[number];
 /** What each cue is for, for the preview page and the README. */
 export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   laser: "Laser Gun shot: a pew with a whistling ricochet",
-  hoof: "One clip-clop of a riding horse (played on every stride)",
+  hoof: "One galloping stride of a riding horse: four hoofbeats, ba-da-da-DUM (played stride after stride)",
   flip: "A hacking-game tile flip: a guitar pluck, stepping through an A-minor scale",
   strike: "A defender's strike-back: an anvil thud under a low twang",
   twist: "A twist striking (RUGPULL!!!): whip crack, a falling whistle and a trembling guitar chord",
@@ -108,6 +108,17 @@ function woodBlock(o: Out, t: number, freq: number, gain = 0.35) {
   cg.gain.setValueAtTime(gain * 0.5, t); cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
   click.connect(cf).connect(cg); send(o, cg, 0.1); click.start(t); click.stop(t + 0.03);
 }
+/** A dull thud of a hoof on dirt: a short low sine that drops in pitch, and a puff of muffled noise. */
+function thud(o: Out, t: number, freq: number, gain = 0.3) {
+  const { ctx } = o, osc = ctx.createOscillator(), g = ctx.createGain();
+  osc.type = "sine"; osc.frequency.setValueAtTime(freq * 1.6, t); osc.frequency.exponentialRampToValueAtTime(freq, t + 0.03);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+  osc.connect(g); send(o, g, 0.05); osc.start(t); osc.stop(t + 0.14);
+  const dirt = noiseSource(ctx, 0.08), lp = ctx.createBiquadFilter(), dg = ctx.createGain();
+  lp.type = "lowpass"; lp.frequency.value = 700;
+  dg.gain.setValueAtTime(gain * 0.6, t); dg.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+  dirt.connect(lp).connect(dg); send(o, dg, 0); dirt.start(t); dirt.stop(t + 0.08);
+}
 /** The mariachi trumpet: a bright sawtooth through a swelling low-pass, with a vibrato that arrives late on long notes. */
 function trumpet(o: Out, t: number, freq: number, seconds: number, gain = 0.16) {
   const { ctx } = o, a = ctx.createOscillator(), b = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -148,8 +159,15 @@ function cue(o: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "hoof": {
-      // Clip, then a slightly higher clop.
-      woodBlock(o, t, 520, 0.3); woodBlock(o, t + 0.085, 690, 0.24);
+      // One galloping stride: four hooves land in a quick, uneven "ba-da-da-DUM", the last the heaviest, each a hard knock on top of
+      // a dull thud of dirt. Every hit is a little different in pitch, weight and timing, so stride after stride never repeats.
+      const jitter = (spread: number) => 1 + (Math.random() * 2 - 1) * spread;
+      const beats: [number, number, number][] = [[0, 0.55, 1.08], [0.068, 0.45, 0.94], [0.122, 0.62, 1.02], [0.2, 1, 0.88]];
+      for (const [at, weight, pitch] of beats) {
+        const when = t + at + (Math.random() - 0.5) * 0.012, level = weight * jitter(0.15);
+        woodBlock(o, when, 560 * pitch * jitter(0.07), 0.15 * level);
+        thud(o, when, 95 * pitch * jitter(0.1), 0.19 * level);
+      }
       break;
     }
     case "flip": {
@@ -195,7 +213,7 @@ function cue(o: Out, id: SoundId, t: number, options: CueOptions = {}) {
   }
 }
 /** How long each cue rings, in seconds (for rendering previews). */
-export const CUE_SECONDS: Readonly<Record<SoundId, number>> = { laser: 0.7, hoof: 0.35, flip: 1, strike: 1.3, twist: 3.6, win: 2.9 };
+export const CUE_SECONDS: Readonly<Record<SoundId, number>> = { laser: 0.7, hoof: 0.45, flip: 1, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {
@@ -269,6 +287,14 @@ export async function renderCue(id: SoundId, options: CueOptions = {}, sampleRat
   const ctx = new OfflineAudioContext(2, Math.ceil(CUE_SECONDS[id] * sampleRate), sampleRate);
   const master = ctx.createGain(); master.gain.value = 0.56;
   cue(outputChain(ctx, ctx.destination, master), id, 0.01, options);
+  return ctx.startRendering();
+}
+/** Render a sequence of cues offline, each at its own time in seconds: for previews of rhythms such as a gallop. */
+export async function renderSequence(steps: readonly { id: SoundId; at: number; options?: CueOptions }[], sampleRate = 44100): Promise<AudioBuffer> {
+  const seconds = Math.max(...steps.map(step => step.at + CUE_SECONDS[step.id])) + 0.1;
+  const ctx = new OfflineAudioContext(2, Math.ceil(seconds * sampleRate), sampleRate), master = ctx.createGain(); master.gain.value = 0.56;
+  const out = outputChain(ctx, ctx.destination, master);
+  for (const step of steps) cue(out, step.id, 0.01 + step.at, step.options);
   return ctx.startRendering();
 }
 /** 16-bit stereo WAV bytes of a rendered buffer. */

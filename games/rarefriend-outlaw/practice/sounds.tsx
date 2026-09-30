@@ -2,7 +2,7 @@
 // Build: node games/rarefriend-outlaw/practice/build.mjs, then open practice/dist/sounds.html.
 import { createRoot } from "react-dom/client";
 import { useRef, useState } from "react";
-import { createOutlawAudio, renderCue, wavBytes, SOUND_CUES, SOUND_IDS, type SoundId } from "../audio";
+import { createOutlawAudio, renderCue, renderSequence, wavBytes, SOUND_CUES, SOUND_IDS, type SoundId } from "../audio";
 
 function SoundPreview() {
   const audio = useRef(createOutlawAudio({ volume: 0.8 }));
@@ -30,12 +30,12 @@ function SoundPreview() {
     <h2>In a sequence</h2>
     <p>
       <button type="button" onClick={() => { void play("flip", { step }); setStep(value => value + 1); }}>Flip (next note: {step % 10 + 1} of 10)</button>{" "}
-      <button type="button" onClick={async () => { if (!(await audio.current.unlock())) return; for (let i = 0; i < 8; i++) setTimeout(() => audio.current.play("hoof"), i * 260); }}>Gallop (8 strides)</button>{" "}
+      <button type="button" onClick={async () => { if (!(await audio.current.unlock())) return; for (let i = 0; i < 8; i++) setTimeout(() => audio.current.play("hoof"), i * 400); }}>Gallop (8 strides)</button>{" "}
       <button type="button" onClick={async () => { if (!(await audio.current.unlock())) return; [0, 1, 2, 3, 4].forEach((k, i) => setTimeout(() => audio.current.play("flip", { step: k }), i * 220)); setTimeout(() => audio.current.play("strike"), 1300); setTimeout(() => audio.current.play("win"), 2300); }}>A short hack</button>
     </p>
     {note && <p role="alert">{note}</p>}
   </main>;
 }
 // For tools that render the cues to WAV files headlessly (no speakers needed).
-(window as unknown as { outlawSounds: unknown }).outlawSounds = { renderCue, wavBytes, SOUND_IDS };
+(window as unknown as { outlawSounds: unknown }).outlawSounds = { renderCue, renderSequence, wavBytes, SOUND_IDS };
 createRoot(document.getElementById("root")!).render(<SoundPreview />);

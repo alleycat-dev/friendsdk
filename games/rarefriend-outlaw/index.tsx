@@ -665,9 +665,9 @@ type RunEnd = { reason: string; outcome: string; reward: bigint };
  * moment it is first ridden, and WILD_TEMP_HORSES of them stand somewhere in every fresh world, to ride but never to pocket. */
 /** Playtesting: true starts every new game with the Permanent Trojan Horse, owned and waiting left of the start (startHorseSpot);
  * false (the released game) makes it a PERMANENT_HORSE_OP purchase at the Exchange. */
-const PLAYTEST_START_HORSE = false;
-/** Time between a riding horse's clip-clops. */
-const HOOF_STRIDE_MS = 280;
+const PLAYTEST_START_HORSE = true;
+/** Time between a riding horse's galloping strides (each stride is four hoofbeats, the `hoof` cue). */
+const HOOF_STRIDE_MS = 400;
 const PERMANENT_HORSE_OP = 150, TEMP_HORSE_OP = 10, HORSE_TEMP_MS = 30_000, WILD_TEMP_HORSES = 2;
 /** A Laser Gun is LASER_CHARGES of the SDK consumable bought at once (client.buy / play); the nets are simulated locally. The
  * Charging Station's terminal reloads it, one more consumable per RF, up to LASER_MAX charges in the gun. */
@@ -4492,7 +4492,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           for (const mount of horses.current) {
             const horseAt = mount.mounted ? { x: VIEW.width / 2, y: VIEW.height / 2 } : toScreen(mount.position);
             const gallop = mount.mounted && state.walking && !live.current.reducedMotion ? Math.floor(now / 140) % 2 * 2 : 0;
-            // Hoofbeats: a clip-clop every stride while the ridden horse is moving.
+            // Hoofbeats: a galloping stride, again and again, while the ridden horse is moving.
             if (mount.mounted && state.walking && now - lastHoof >= HOOF_STRIDE_MS) { lastHoof = now; audio.current?.play("hoof"); }
             // While mounted the horse takes the Friend's current facing and depth, so its parts never sort against a stale position.
             const horseParts = !interior && onScreen(horseAt, 160) ? horseLayers(ctx, mount.mounted ? state.facing : mount.facing, horseAt.x, horseAt.y - gallop, mount.mounted, mount.kind) : null;

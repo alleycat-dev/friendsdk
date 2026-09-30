@@ -23,6 +23,17 @@ const cues = await page.evaluate(async () => {
     for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
     rendered.push({ id, seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) });
   }
+  // Sequences, to hear the cues as they come in play: eight galloping strides, and a run of flips into a strike-back and a win.
+  const sequences = {
+    gallop: [...Array(8)].map((_, i) => ({ id: "hoof", at: i * 0.4 })),
+    "short-hack": [...[0, 1, 2, 3, 4].map(k => ({ id: "flip", at: k * 0.22, options: { step: k } })), { id: "strike", at: 1.3 }, { id: "win", at: 2.3 }],
+  };
+  for (const [id, steps] of Object.entries(sequences)) {
+    const buffer = await window.outlawSounds.renderSequence(steps);
+    let peak = 0, sum = 0;
+    for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
+    rendered.push({ id: `sequence-${id}`, seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) });
+  }
   return rendered;
 });
 await browser.close();
