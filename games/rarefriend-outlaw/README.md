@@ -867,7 +867,8 @@ game reloads.
 
 ### Settling a licence: seed words, trophies and the Cold Wallet
 
-A run ends when The Liquidator's wallet is settled, 3 wallets are wiped, or you retire, which you can do any time: Retire now in
+A run ends when The Liquidator's wallet is settled, or when you retire, which you can do any time (wiped wallets are counted but
+never end a run): Retire now in
 the licence office, or straight at the terminal below, which then offers **Retire and settle the licence** with the seed words you
 hold so far (fewer words, smaller bonuses; the run only ends once the payout's "Use" confirmation goes through). The
 licence is **settled at the Data Center**: a note says so, the licence office repeats it, and the friendly locals' arrows point
@@ -907,8 +908,9 @@ holds exactly 20 RF, so a 100 RF licence could not be bought in preview). A lice
   again. A licence you already hold (bought but not yet used) starts a run without buying.
 - **During the run.** Shots, reloads (1 OP a shot at the Charging Station, up to 50), horses and wallets are all
   in-game, with no dialogs. Cracked wallets pay OP and loot, never RF.
-- **End.** The run ends when The Liquidator's wallet is settled (cracked or wiped), when 3 wallets have been
-  wiped by their kill switches, or when you retire from the licence office. Then the licence is used, the
+- **End.** The run ends when The Liquidator's wallet is settled (cracked or wiped), or when you retire, at any
+  time, from the licence office or the Data Center's terminal, settling with the seed words you hold so far. Wallets
+  wiped by their kill switches are counted but never end the run. Then the licence is used, the
   run's one other confirmation ("Use bounty hunter licence"), and its play is settled, revealing its **RF
   payout**, kept in your inventory to redeem (cancel that confirmation and the office offers "Reveal the payout"):
 

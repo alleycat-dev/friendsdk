@@ -699,9 +699,10 @@ const PERMANENT_HORSE_OP = 150, TEMP_HORSE_OP = 10, HORSE_TEMP_MS = 30_000, WILD
 /** The Bounty Hunter licence (the game's one SDK consumable, one per run) comes with a Laser Gun of LASER_CHARGES shots; the
  * Charging Station tops it up for RELOAD_OP OP a shot, up to LASER_MAX. */
 const LASER_CHARGES = 20n, LASER_MAX = 50n, RELOAD_OP = 1;
-/** A run ends when The Liquidator's wallet is settled or after RUN_LOSSES wiped wallets. A cracked wallet is a jackpot wallet with
- * JACKPOT_WALLET_CHANCE: triple OP, a second loot roll and the better keepsake odds. */
-const RUN_LOSSES = 3, JACKPOT_WALLET_CHANCE = 0.05, LIQUIDATOR_LEVEL = 11;
+/** A run ends when The Liquidator's wallet is settled, or whenever you choose to retire and settle with the seed words you hold; wiped
+ * wallets are counted but never end it. A cracked wallet is a jackpot wallet with JACKPOT_WALLET_CHANCE: triple OP, a second loot
+ * roll and the better keepsake odds. */
+const JACKPOT_WALLET_CHANCE = 0.05, LIQUIDATOR_LEVEL = 11;
 /** OP every run starts with, on top of whatever you hold. */
 const START_OP = 20;
 const ITEMS: readonly Item[] = [
@@ -5033,7 +5034,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     if (run) {
       const lost = run.lost + (next.phase === "won" ? 0 : 1), level = outlawLevel(current.npcId === COMBINED_ID ? "Pumper" : current.name);
       if (lost !== run.lost) setRun({ ...run, lost });
-      if (level >= LIQUIDATOR_LEVEL || lost >= RUN_LOSSES) void endRun(level >= LIQUIDATOR_LEVEL ? "The Liquidator's wallet is settled: the country is clean." : `${RUN_LOSSES} wallets wiped by their kill switches.`, { ...run, lost });
+      if (level >= LIQUIDATOR_LEVEL) void endRun("The Liquidator's wallet is settled: the country is clean.", { ...run, lost });
     }
   }
   function closeWallet() {
@@ -5513,13 +5514,13 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             <p>Your last licence run was interrupted when the game reloaded. Its payout is still due.</p>
             <button type="button" className="rf-frame-primary" disabled={busy || paused} onClick={() => void resolvePending()}>Resolve the payout</button>
           </> : run ? <>
-            <p>Your licence is active: {run.lost} of {RUN_LOSSES} wallets wiped. The run ends when The Liquidator's wallet is settled or {RUN_LOSSES} wallets are wiped, but you can retire any time: here, or straight at the Data Center's Licence Settlement terminal. The licence is settled there with the seed words you hold, so an early retirement pays smaller bonuses.</p>
+            <p>Your licence is active ({run.lost} {run.lost === 1 ? "wallet" : "wallets"} wiped so far). The run ends when The Liquidator's wallet is settled, but you can retire any time: here, or straight at the Data Center's Licence Settlement terminal. The licence is settled there with the seed words you hold, so an early retirement pays smaller bonuses.</p>
             <button type="button" disabled={busy || paused} onClick={() => void endRun("You retired.")}>Retire now</button>
           </> : runEnd ? <>
             <p>A new licence starts a fresh country: the outlaws return and the hunt starts over.</p>
             <button type="button" className="rf-frame-primary" disabled={busy || paused} onClick={() => { setRunEnd(null); setRevision(value => value + 1); }}>Start a new hunt</button>
           </> : <>
-            <p>A licence costs {rf(definition.price)} and covers one run: a Laser Gun with {LASER_CHARGES.toString()} shots (reload with in-game currency OP at the Charging Station), 12 criminals, each with their own lootable hardware wallet (OP and in-game items), and at the end an RF payout rolled by the game's table. The run lasts until The Liquidator's wallet is settled or {RUN_LOSSES} hardware wallet hacks have failed.</p>
+            <p>A licence costs {rf(definition.price)} and covers one run: a Laser Gun with {LASER_CHARGES.toString()} shots (reload with in-game currency OP at the Charging Station), 12 criminals, each with their own lootable hardware wallet (OP and in-game items), and at the end an RF payout rolled by the game's table. The run lasts until The Liquidator's wallet is settled, or until you retire and settle with the seed words you hold.</p>
             <p>You have {rf(balance)}{snapshot.consumables > 0n ? " and an unused licence" : ""}.</p>
             <button type="button" className="rf-frame-primary" disabled={!(canBuyLicence || snapshot.consumables > 0n) || paused} onClick={() => void startRun()}>{snapshot.consumables > 0n ? "Start the run" : `Buy a licence (${rf(definition.price)}) and start`}</button>
           </>}
@@ -5555,7 +5556,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
         <GameMenu title="Centralised Exchange" onClose={busy ? undefined : () => open(null)}>
           <p>{rf(balance)} {"·"} {op} OP</p>
           {!run && <div className="outlaw-item">
-            <span><strong>Bounty Hunter licence</strong> {"·"} {rf(definition.price)}<small>One run with a Laser Gun, until The Liquidator's wallet is settled or {RUN_LOSSES} wallets are wiped. Its RF payout is revealed at the end.</small></span>
+            <span><strong>Bounty Hunter licence</strong> {"·"} {rf(definition.price)}<small>One run with a Laser Gun, until The Liquidator's wallet is settled or you retire. Its RF payout is revealed at the end.</small></span>
             <button type="button" className="rf-frame-primary" disabled={paused} onClick={() => open("licence")}>Licence office</button>
           </div>}
           <div className="outlaw-item">
@@ -5584,7 +5585,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
         return <GameMenu title="Licence Settlement" onClose={busy ? undefined : () => open(null)}>
           {best && <p>Your title: <strong>{best.title}</strong> ({trophies} of {TROPHIES.length} trophies).</p>}
           {settling || run ? <>
-            <p>{settling ? `Run over. ${settling.reason} Settle your licence here; RF payout rolls will still happen.` : `Your licence is still active (${run!.lost} of ${RUN_LOSSES} wallet hacks wiped). You can retire any time and settle with the seed words you hold so far; this cuts the game short. RF payout rolls will still happen.`} Fill
+            <p>{settling ? `Run over. ${settling.reason} Settle your licence here; RF payout rolls will still happen.` : `Your licence is still active (${run!.lost} ${run!.lost === 1 ? "wallet" : "wallets"} wiped so far). You can retire any time and settle with the seed words you hold so far; this cuts the game short. RF payout rolls will still happen.`} Fill
               in the seed phrase with the words you recovered: every word adds OP (more for each one), a head start for your next licenced
               hunt, and a trophy and a title. All twelve seed words open the Cold Wallet; fewer words don't, but can still give great loot.</p>
             <ol className="outlaw-phrase">
@@ -5609,7 +5610,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             {settled.cold && <p>All twelve words: the Cold Wallet opened{settled.hadGolden ? ", but its Golden Trojan Horse is already yours" : ". Your Permanent Shiny Golden Trojan Horse waits outside the Exchange, in every hunt from now on"}.</p>}
             <p>Start a new hunt from the licence office (the Licence button).</p>
           </> : <>
-            <p>No licence to settle. When a run ends (The Liquidator's wallet settled, {RUN_LOSSES} wallets wiped, or you retire), come here to
+            <p>No licence to settle. When a run ends (The Liquidator's wallet settled, or you retire), come here to
               settle its licence and hand in the seed words you recovered.</p>
             {headStartText(headStart) && <p>Head start waiting for your next licence: {headStartText(headStart)}.</p>}
           </>}
@@ -5655,7 +5656,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
         <GameMenu title="Inventory" onClose={busy ? undefined : () => open(null)}>
           {trophies > 0 && <p>Title: <strong>{TROPHIES[trophies - 1].title}</strong> ({trophies} of {TROPHIES.length} trophies in the Data Center's trophy hall).</p>}
           <p>{op} OP (Outlaw Points): each wallet you crack pays {OP_PER_TIER} × its tier, more for more stars; {OP_BIG_GAME} for a bear or lion, {OP_ANIMAL} for other animals.</p>
-          <p>{run ? `Licence run in progress: ${run.lost} of ${RUN_LOSSES} wallets wiped.` : "No active licence: open the licence office (HUD button) to start a run."}{perks.length ? ` Keepsake perks waiting for your next hack: ${perks.map(perk => PERK_TEXT[perk]).join(", ")}.` : ""}</p>
+          <p>{run ? `Licence run in progress: ${run.lost} ${run.lost === 1 ? "wallet" : "wallets"} wiped so far.` : "No active licence: open the licence office (HUD button) to start a run."}{perks.length ? ` Keepsake perks waiting for your next hack: ${perks.map(perk => PERK_TEXT[perk]).join(", ")}.` : ""}</p>
           {ownedItems.length === 0 && capturedTotal === 0 && !halves.top && !halves.bottom && !permanentHorse && seedWords.size === 0 && programCards.length === 0 && keys.size === 0 && intel === 0 && gasVouchers === 0 && keepsakes.length === 0 && <p>Nothing yet.</p>}
           {ownedItems.map(item => <div className="outlaw-item" key={item.id}>
             <span><strong>{item.name}</strong><small>{item.id === "laser" ? (charges === 0n ? "Empty, 0 shots" : `${charges.toString()} shots`) : `${count(item.id).toString()} owned`} {"·"} {item.blurb}</small></span>
@@ -5740,8 +5741,9 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             Wallet. No real tokens move, and nothing is saved when the page reloads.</p>}
           <h3>The licence</h3>
           <p>A Bounty Hunter licence ({rf(definition.price)}) starts a run: a Laser Gun with {LASER_CHARGES.toString()} shots and {START_OP} OP.
-            The run ends when The Liquidator's wallet is settled or {RUN_LOSSES} hardware wallet hacks have failed, and then the licence's RF
-            payout is revealed. You can retire early from the licence office (the Licence button).</p>
+            The run ends when The Liquidator's wallet is settled, and then the licence's RF payout is revealed; a failed hack does not end it.
+            You can retire at any time from the licence office (the Licence button) or the Data Center's Licence Settlement terminal, and
+            settle with the seed words you have recovered so far.</p>
           <h3>Getting around</h3>
           <p>Walk with WASD or the arrow keys, or tap where to go. I opens the inventory, M the big map, Q switches what you hold, Space
             uses it (fire the Laser Gun, swing the Butterfly Net or the Cleaver), Esc closes things. Walk into a door to go in, and into a terminal to use it.
