@@ -28,6 +28,8 @@ const cues = await page.evaluate(async () => {
     gallop: [...Array(8)].map((_, i) => ({ id: "hoof", at: i * 0.52 })),
     "short-hack": [...[0, 1, 2, 3, 4].map(k => ({ id: "flip", at: k * 0.22, options: { step: k } })), { id: "smash", at: 1.3 }, { id: "smash", at: 2.1, options: { heavy: true } }, { id: "win", at: 3.4 }],
     "smash-break": [{ id: "smash", at: 0, options: { heavy: true } }],
+    // Flips as a chain grows and stalls: the note climbs only when the chain does.
+    chain: [0, 1, 1, 2, 3, 3, 3, 4, 5, 5, 6, 7].map((step, k) => ({ id: "flip", at: k * 0.3, options: { step } })),
   };
   for (const [id, steps] of Object.entries(sequences)) {
     const buffer = await window.outlawSounds.renderSequence(steps);

@@ -3871,14 +3871,14 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   const [soundOn, setSoundOn] = useState(true), [soundVolume, setSoundVolume] = useState(0.7);
   useEffect(() => { audio.current?.setMuted(!soundOn); audio.current?.setVolume(soundVolume); }, [soundOn, soundVolume]);
   useEffect(() => () => audio.current?.dispose(), []);
-  // The hacking board's cues come from comparing each new board state with the last: a tile uncovered plucks the next note of the
-  // scale, hitting a defender smashes brick (its instant strike-back included), other lost Integrity is a thud, a new twist event
+  // The hacking board's cues come from comparing each new board state with the last: a tile uncovered plucks the note of the chain's
+  // size, hitting a defender smashes brick (its instant strike-back included), other lost Integrity is a thud, a new twist event
   // is its stinger, and a cracked wallet plays the win flourish.
-  const lastBoard = useRef<WalletState | null>(null), flipStep = useRef(0);
+  const lastBoard = useRef<WalletState | null>(null);
   useEffect(() => {
     const next = wallet && wallet.state !== "probing" ? wallet.state : null, before = lastBoard.current;
     lastBoard.current = next;
-    if (!next) { flipStep.current = 0; return; }
+    if (!next) return;
     if (!before || before === next) return;
     const player = audio.current!, revealed = (board: WalletState) => board.tiles.filter(tile => tile.revealed).length;
     // A defender hit: its HP dropped (a strike-back lands at the same moment, so the smash stands for both).
@@ -3887,7 +3887,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     else if (next.phase === "won" && before.phase !== "won") player.play("win");
     else if (hit >= 0) player.play("smash", { heavy: next.tiles[hit].hp <= 0 });
     else if (next.grit < before.grit) player.play("strike");
-    else if (revealed(next) > revealed(before)) player.play("flip", { step: flipStep.current++ });
+    // The flip's note is the chain's size: it climbs when the chain grows and repeats the last note when it does not.
+    else if (revealed(next) > revealed(before)) player.play("flip", { step: Math.max(0, next.chain - 1) });
   }, [wallet]);
   const walletSettled = useRef(-1); // npcId whose wallet outcome has been paid out or closed, guarding against double awards
   // The "neutralized" dialog: the belongings list, then the kill-switch warning, then (after "Heck no") the voice-command notice.

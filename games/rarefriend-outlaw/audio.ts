@@ -13,7 +13,7 @@ export type SoundId = (typeof SOUND_IDS)[number];
 export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   laser: "Laser Gun shot: a low energy blast with the gun's recoil (a kick and a clack) and a canyon echo",
   hoof: "One galloping stride of a riding horse: four hoofbeats, ba-da-da-DUM (played stride after stride)",
-  flip: "A hacking-game tile flip: a guitar pluck, stepping through an A-minor scale",
+  flip: "A hacking-game tile flip: a synth pluck whose note is the chain's size, rising only as the chain grows",
   showdown: "Tumbleweed time: the first time a new outlaw comes near (as its red arrow appears): wind, a distant bell, a lone whistle and a trembling twang",
   bump: "Walking into an outlaw (who robs you): like walking into something, a body thump and a hollow bonk",
   smash: "Hitting a defender in a hack: demolishing brickwork, a crack, crumbling stone and a thud (a bigger collapse when it breaks)",
@@ -44,8 +44,9 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
 type Out = { ctx: BaseAudioContext; dry: AudioNode; wet: AudioNode };
 const A4 = 440;
 const hz = (semitonesFromA4: number) => A4 * 2 ** (semitonesFromA4 / 12);
-/** A minor pentatonic-ish scale (A C D E G, two octaves) for the tile flips, in semitones from A4. */
-const FLIP_SCALE = [-12, -9, -7, -5, -2, 0, 3, 5, 7, 10];
+/** The tile flip's notes: the A minor pentatonic (A C D E G) climbing three octaves from A3, in semitones from A4. The flip plays
+ * the note of your chain's size, so it climbs only as the chain grows and holds at the top once a long chain runs past it. */
+const FLIP_SCALE = [-12, -9, -7, -5, -2, 0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24];
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // Instruments. Each schedules its voices at time `t` into the dry and reverb buses and cleans up after itself.
@@ -400,9 +401,18 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "flip": {
-      // A bright pluck; successive flips walk the A-minor scale, so a run of flips plays a little tune.
-      const note = FLIP_SCALE[((options.step ?? 0) % FLIP_SCALE.length + FLIP_SCALE.length) % FLIP_SCALE.length];
-      pluck(o, t, hz(note + 12), 0.35, 0.9, 0.994, 0.3);
+      // A synth pluck: two detuned sawtooths and a square an octave below, through a resonant low-pass that snaps shut. Its note is
+      // the chain's size on the scale (`step`), so it rises only when the chain grows and otherwise repeats the last note.
+      const note = FLIP_SCALE[Math.max(0, Math.min(FLIP_SCALE.length - 1, options.step ?? 0))], freq = hz(note);
+      const lp = ctx.createBiquadFilter(), g = ctx.createGain();
+      lp.type = "lowpass"; lp.Q.value = 9; lp.frequency.setValueAtTime(Math.min(12000, freq * 9), t); lp.frequency.exponentialRampToValueAtTime(freq * 1.6, t + 0.22);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      lp.connect(g); send(o, g, 0.3);
+      for (const [type, ratio, detune, level] of [["sawtooth", 1, -7, 0.5], ["sawtooth", 1, 7, 0.5], ["square", 0.5, 0, 0.3]] as const) {
+        const osc = ctx.createOscillator(), og = ctx.createGain();
+        osc.type = type; osc.frequency.value = freq * ratio; osc.detune.value = detune; og.gain.value = level;
+        osc.connect(og).connect(lp); osc.start(t); osc.stop(t + 0.6);
+      }
       break;
     }
     case "smash": {
