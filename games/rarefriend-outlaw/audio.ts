@@ -22,7 +22,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   twist: "A twist striking (RUGPULL!!!): whip crack, a falling whistle and a trembling guitar chord",
   win: "A cracked wallet: a mariachi trumpet flourish over a strummed chord",
   meow: "Cat: mee-ow, the mouth opening wide and closing again",
-  bark: "Dog: two gruff barks",
+  bark: "Dog: two full barks from the chest, woof, woof",
   moo: "Cow: a long, low moo",
   oink: "Pig: a few nasal grunts",
   crow: "Rooster: cock-a-doodle-doo",
@@ -322,8 +322,15 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "bark": {
-      for (const at of [0, 0.28]) voice(o, t + at, { seconds: 0.2, gain: 0.34, breath: 0.45, attack: 0.008, release: 0.1, pitch: [[0, 290], [0.2, 190]],
-        formants: [{ f: [[0, 750], [0.2, 550]], q: 3, gain: 1 }, { f: [[0, 1600], [0.2, 1300]], q: 5, gain: 0.6 }, { f: [[0, 2700], [0.2, 2500]], q: 6, gain: 0.3 }] });
+      // Woof, woof: a full bark from the chest. The voice leaps up and falls away, with a low body resonance under the open "wo" of
+      // the mouth, a rasp in the throat, a thump of the chest and a little room around it; the second bark a touch lower.
+      for (const [at, lift] of [[0, 1], [0.34, 0.9]] as const) {
+        voice(o, t + at, { seconds: 0.26, gain: 0.3, breath: 0.35, attack: 0.012, release: 0.14, rasp: 0.45, raspRate: 38, reverb: 0.3,
+          pitch: [[0, 190 * lift], [0.04, 300 * lift], [0.26, 150 * lift]],
+          formants: [{ f: [[0, 380], [0.26, 300]], q: 2, gain: 1 }, { f: [[0, 800], [0.06, 950], [0.26, 600]], q: 2.5, gain: 0.9 },
+            { f: [[0, 1700], [0.26, 1400]], q: 3.5, gain: 0.45 }, { f: [[0, 2800], [0.26, 2500]], q: 5, gain: 0.15 }] });
+        thud(o, t + at, 95 * lift, 0.15);
+      }
       break;
     }
     case "moo": {
@@ -531,7 +538,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 }
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
-  meow: 0.9, bark: 0.7, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
+  meow: 0.9, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
   slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
