@@ -1029,8 +1029,8 @@ flourish). Sound starts after the first click, tap or key press (browsers requir
 has **Sound on** (mute) and a volume slider.
 
 **Animals** sound as they do in life, with a small voice synthesizer (a buzzing source shaped by vowel-like formant filters):
-the cat meows, the dog barks, the cow moos, the pig grunts, the rooster crows, the hen clucks (bok, bok, bok, ba-gawk), birds
-tweet, frogs ribbit, the deer snorts, the rabbit thumps its hind foot, the ostrich booms, the snake hisses, the lion roars, the
+the cat meows (a low, raspy tomcat's mrrrAOW), the dog barks, the cow moos, the pig grunts, the rooster crows (a proud, strained
+cock-a-doodle-doooo), the hen clucks (bok, bok, bok, ba-gawk), birds tweet, black crows caw (Ra! Ra!), frogs ribbit, the deer snorts, the rabbit thumps its hind foot, the ostrich booms, the snake hisses, the lion roars, the
 bear growls, the Golden Fox yelps and the dragon roars as it breathes fire, with a whoosh of flame. Some sounds go on while an
 animal is doing something: a snake slithering over dry ground while it moves, the bees' low, oscillating hum near the swarm and the faint flutter
 of a butterfly's wings. Animals that can be shot cry out in their own voice when a bolt hits them (`wail`): the rabbit's thin scream, the deer's bawl, a

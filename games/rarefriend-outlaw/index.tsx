@@ -675,6 +675,7 @@ const ANIMAL_CALLS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: rea
   rabbit: { cue: "thump", every: [9000, 20000] }, cat: { cue: "meow", every: [7000, 16000] }, dog: { cue: "bark", every: [6000, 14000] },
   deer: { cue: "snort", every: [9000, 20000] }, cow: { cue: "moo", every: [8000, 18000] }, pig: { cue: "oink", every: [5000, 11000] },
   rooster: { cue: "crow", every: [14000, 30000] }, hen: { cue: "cluck", every: [4000, 9000] }, bird: { cue: "chirp", every: [3000, 8000] },
+  crow: { cue: "caw", every: [5000, 12000] },
   frog: { cue: "ribbit", every: [3000, 7000] }, ostrich: { cue: "boom", every: [12000, 25000] }, snake: { cue: "hiss", every: [9000, 18000] },
   lion: { cue: "roar", every: [7000, 14000] }, bear: { cue: "growl", every: [6000, 12000] }, fox: { cue: "yip", every: [4000, 9000] },
 };
@@ -735,7 +736,7 @@ const holdable = (id: ItemId) => id !== "temp-horse";
 // NPCs: outlaws and animals with a wander-pause-wander behaviour
 // ---------------------------------------------------------------------------
 
-type AnimalId = "rabbit" | "cat" | "dog" | "deer" | "cow" | "pig" | "rooster" | "hen" | "bird" | "frog" | "ostrich" | "snake" | "butterfly" | "lion" | "bear" | "fox" | "dragon" | "bee";
+type AnimalId = "rabbit" | "cat" | "dog" | "deer" | "cow" | "pig" | "rooster" | "hen" | "bird" | "crow" | "frog" | "ostrich" | "snake" | "butterfly" | "lion" | "bear" | "fox" | "dragon" | "bee";
 type NpcKind = "outlaw" | AnimalId;
 type Animal = AnimalId;
 type Loot = Durable | AnimalId;
@@ -1129,6 +1130,8 @@ const ANIMALS: readonly AnimalSpec[] = [
   { id: "rooster", name: "Rooster", chance: 100, alive: 2, cell: 3, speed: 45, behaviour: "chicken", flying: false, net: null, shots: 0, tint: "#d7a067", accent: "#d94f3c", mask: ROOSTER_MASK },
   { id: "hen", name: "Hen", chance: 100, alive: 8, cell: 3, speed: 45, behaviour: "chicken", flying: false, net: null, shots: 0, tint: "#e8caa0", accent: "#f2b06a", mask: HEN_MASK },
   { id: "bird", name: "Bird", chance: 100, alive: 5, cell: 3, speed: 120, behaviour: "wander", flying: true, net: null, shots: 0, tint: "#e4ded3", accentPalette: ["#3d7bd9", "#d94f3c", "#e0b030", "#3c8f5a", "#b04fd9", "#ff8a2a"], mask: BIRD_MASK },
+  // Black crows: the bird's shape drawn larger, jet black with dark grey wings and beak; they caw (Ra! Ra!).
+  { id: "crow", name: "Crow", chance: 100, alive: 4, cell: 4, speed: 105, behaviour: "wander", flying: true, net: null, shots: 0, tint: "#26262c", accent: "#4a4a54", mask: BIRD_MASK },
   { id: "frog", name: "Frog", chance: 100, alive: 5, cell: 3, speed: 70, behaviour: "hop", flying: false, net: null, shots: 0, tint: "#a8cc8e", accentPalette: ["#3c8f5a", "#8ab83a", "#d9a441", "#d94f3c", "#3d7bd9", "#b04fd9"], mask: FROG_MASK },
   { id: "ostrich", name: "Ostrich", chance: 100, alive: 1, cell: 5, speed: 60, behaviour: "ostrich", flying: false, net: null, shots: 1, tint: "#e3bba8", accent: "#5b534a", mask: OSTRICH_MASK, altMask: OSTRICH_DOWN_MASK },
   { id: "snake", name: "Snake", chance: 100, alive: 3, cell: 4, speed: 40, behaviour: "slither", flying: false, net: null, shots: 1, tint: "#aab97f", accent: "#408080", mask: SNAKE_MASK },
@@ -1956,7 +1959,7 @@ function spawnSpecies(spec: AnimalSpec, count: number, away: WorldPoint, now: nu
     else if (spec.behaviour === "chicken") { npc.position = randomYardPoint(); npc.modeUntil = now + random(8000, 20000); }
     else if (centre) { const near: WorldPoint = [centre[0] + random(-60, 60), centre[1] + random(-40, 40)]; npc.position = i === 0 ? centre : walkable(near, NPC_RADIUS) ? near : centre; }
     npc.hp = Math.max(1, spec.shots);
-    npc.hover = spec.flying ? (spec.id === "dragon" ? 90 : spec.id === "bird" ? 34 : spec.id === "bee" ? random(14, 40) : 18) : 0;
+    npc.hover = spec.flying ? (spec.id === "dragon" ? 90 : spec.id === "bird" || spec.id === "crow" ? 34 : spec.id === "bee" ? random(14, 40) : 18) : 0;
     if (spec.palette) {
       // Random colours: a main tint plus a different accent from the same palette, mixed on the mask's 'p' cells.
       npc.tint = spec.palette[Math.floor(Math.random() * spec.palette.length)];

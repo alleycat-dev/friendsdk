@@ -6,7 +6,7 @@
 // muted, locked or hidden players drop cues instead of queueing them.
 
 export const SOUND_IDS = ["laser", "hoof", "step", "bump", "showdown", "flip", "smash", "strike", "twist", "win",
-  "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
+  "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "caw", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
   "roar", "growl", "yip", "dragon", "wail"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
 /** What each cue is for, for the preview page and the README. */
@@ -25,9 +25,10 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   bark: "Dog: two full barks from the chest, woof, woof",
   moo: "Cow: a long, low moo",
   oink: "Pig: a few nasal grunts",
-  crow: "Rooster: cock-a-doodle-doo",
+  crow: "Rooster: a proud, strained cock-a-doodle-doooo",
   cluck: "Hen: bok, bok, bok, ba-gawk",
   chirp: "Bird: a quick burst of tweets",
+  caw: "Crow: a harsh, raspy Ra! Ra! (sometimes three)",
   ribbit: "Frog: rib-bit",
   snort: "Deer: a sharp alarm snort",
   thump: "Rabbit: a hind-foot thump and a sniff",
@@ -355,11 +356,32 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "crow": {
-      // Cock - a - doodle - dooo.
-      const notes: [number, number, number, number][] = [[0, 0.16, 720, 760], [0.2, 0.12, 820, 860], [0.36, 0.16, 780, 900], [0.58, 1.1, 980, 640]];
-      for (const [at, len, from, to] of notes) voice(o, t + at, { seconds: len, gain: 0.24, breath: 0.2, wave: "square", attack: 0.015, release: Math.min(0.3, len * 0.4),
-        pitch: [[0, from], [len * 0.3, (from + to) / 2 * 1.06], [len, to]], rasp: 0.25, raspRate: 60,
-        formants: [{ f: [[0, 1200], [len, 1000]], q: 4, gain: 1 }, { f: [[0, 2800], [len, 2400]], q: 6, gain: 0.6 }] });
+      // Cock - a - doo - dle - doooo: four quick syllables climbing, each its own vowel, then the long, strained last note that rises,
+      // wavers and falls away, all through a rasping, breathy throat.
+      const syllables: [number, number, number, number, number, number][] = [
+        // start, length, pitch from, pitch to, first formant, second formant
+        [0, 0.1, 470, 520, 650, 1100],     // cock
+        [0.13, 0.07, 560, 600, 850, 1400], // a
+        [0.23, 0.14, 720, 780, 480, 950],  // doo
+        [0.4, 0.09, 700, 690, 600, 1800],  // dle
+      ];
+      for (const [at, len, from, to, f1, f2] of syllables) voice(o, t + at, { seconds: len, gain: 0.4, breath: 0.35, attack: 0.012, release: len * 0.35,
+        rasp: 0.45, raspRate: 85, reverb: 0.3, pitch: [[0, from], [len, to]],
+        formants: [{ f: [[0, f1], [len, f1]], q: 4, gain: 1 }, { f: [[0, f2], [len, f2]], q: 5, gain: 0.55 }, { f: [[0, 2900], [len, 2900]], q: 6, gain: 0.15 }] });
+      voice(o, t + 0.53, { seconds: 1.05, gain: 0.44, breath: 0.35, attack: 0.03, release: 0.35, rasp: 0.5, raspRate: 90, reverb: 0.35,
+        pitch: [[0, 780], [0.2, 960], [0.45, 930], [0.6, 950], [0.85, 820], [1.05, 640]],
+        formants: [{ f: [[0, 520], [0.3, 600], [1.05, 700]], q: 4, gain: 1 }, { f: [[0, 1000], [0.3, 1150], [1.05, 1300]], q: 5, gain: 0.55 }, { f: [[0, 2900], [1.05, 2700]], q: 6, gain: 0.15 }] });
+      break;
+    }
+    case "caw": {
+      // Ra! Ra!: harsh, noisy caws with a hard rattle in the throat, each dropping a little; sometimes a third.
+      const caws = Math.random() < 0.35 ? 3 : 2;
+      for (let k = 0; k < caws; k++) {
+        const at = t + k * 0.3, drop = 1 - k * 0.04;
+        voice(o, at, { seconds: 0.2, gain: 0.36, breath: 0.55, attack: 0.008, release: 0.08, rasp: 0.85, raspRate: 72, reverb: 0.25,
+          pitch: [[0, 560 * drop], [0.05, 600 * drop], [0.2, 470 * drop]],
+          formants: [{ f: [[0, 950], [0.2, 850]], q: 3, gain: 1 }, { f: [[0, 1650], [0.2, 1500]], q: 4, gain: 0.7 }, { f: [[0, 2800], [0.2, 2600]], q: 5, gain: 0.3 }] });
+      }
       break;
     }
     case "cluck": {
@@ -575,7 +597,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 }
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
-  meow: 1, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
+  meow: 1, caw: 1.1, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.7, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
   slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
