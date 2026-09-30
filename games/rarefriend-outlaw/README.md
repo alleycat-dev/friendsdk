@@ -1021,7 +1021,7 @@ npx tsc -p games/rarefriend-outlaw/tsconfig.json
 Spaghetti-Western sound effects, all synthesized in code with the Web Audio API in `audio.ts` (no recordings or samples): a
 plucked, twangy guitar string (Karplus-Strong), a whistle with vibrato, a whip crack, wood-block hoofbeats, a mariachi trumpet and
 an anvil thud and a hollow bump, through a short spring-reverb echo. The first cues: `laser` (a pew with a whistling ricochet, on every shot),
-`hoof` (a galloping stride of four uneven hoofbeats, ba-da-da-DUM, every 400 ms while riding, never quite the same twice), `flip` (a guitar pluck per uncovered tile, walking an A-minor scale), `strike`
+`hoof` (a galloping stride of four uneven hoofbeats, ba-da-da-DUM, every 520 ms while riding, never quite the same twice), `flip` (a guitar pluck per uncovered tile, walking an A-minor scale), `strike`
 (lost Integrity in a hack: an anvil thud under a low twang), `bump` (walking into an outlaw, who robs you: a body thump and a hollow bonk), `showdown` (tumbleweed time: the first time each new outlaw comes near, as its red arrow appears: desert wind, rustling tumbleweed, a distant bell, a lone whistle and a trembling low twang), `twist` (a twist striking: whip crack, falling whistle, trembling chord) and `win` (a cracked wallet: a mariachi
 flourish). Sound starts after the first click, tap or key press (browsers require it) and stops while the tab is hidden; Settings
 has **Sound on** (mute) and a volume slider.

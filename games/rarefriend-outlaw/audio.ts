@@ -236,11 +236,11 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       // One galloping stride: four hooves land in a quick, uneven "ba-da-da-DUM", the last the heaviest, each a hard knock on top of
       // a dull thud of dirt. Every hit is a little different in pitch, weight and timing, so stride after stride never repeats.
       const jitter = (spread: number) => 1 + (Math.random() * 2 - 1) * spread;
-      const beats: [number, number, number][] = [[0, 0.55, 1.08], [0.068, 0.45, 0.94], [0.122, 0.62, 1.02], [0.2, 1, 0.88]];
+      const beats: [number, number, number][] = [[0, 0.55, 1.08], [0.085, 0.45, 0.94], [0.153, 0.62, 1.02], [0.25, 1, 0.88]];
       for (const [at, weight, pitch] of beats) {
         const when = t + at + (Math.random() - 0.5) * 0.012, level = weight * jitter(0.15);
-        woodBlock(o, when, 560 * pitch * jitter(0.07), 0.15 * level);
-        thud(o, when, 95 * pitch * jitter(0.1), 0.19 * level);
+        woodBlock(o, when, 470 * pitch * jitter(0.07), 0.15 * level);
+        thud(o, when, 80 * pitch * jitter(0.1), 0.19 * level);
       }
       break;
     }
@@ -447,7 +447,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 0.9, bark: 0.7, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 0.6, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 0.7, hoof: 0.45, flip: 1, bump: 0.45, showdown: 4.6, strike: 1.3, twist: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 0.6, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 0.7, hoof: 0.5, flip: 1, bump: 0.45, showdown: 4.6, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {

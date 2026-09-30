@@ -682,7 +682,7 @@ const ANIMAL_LOOPS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: num
 };
 const HEAR_RANGE = 520; // world units: animals further away are not heard
 /** Time between a riding horse's galloping strides (each stride is four hoofbeats, the `hoof` cue). */
-const HOOF_STRIDE_MS = 400;
+const HOOF_STRIDE_MS = 520;
 const PERMANENT_HORSE_OP = 150, TEMP_HORSE_OP = 10, HORSE_TEMP_MS = 30_000, WILD_TEMP_HORSES = 2;
 /** A Laser Gun is LASER_CHARGES of the SDK consumable bought at once (client.buy / play); the nets are simulated locally. The
  * Charging Station's terminal reloads it, one more consumable per RF, up to LASER_MAX charges in the gun. */
