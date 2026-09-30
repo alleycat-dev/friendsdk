@@ -960,7 +960,8 @@ holds exactly 20 RF, so a 100 RF licence could not be bought in preview). A lice
 
 ### OP, wallet loot and keepsakes (simulated)
 
-**Outlaw Points** are the soft currency. A cracked wallet pays `10 × tier` OP, times 1, 1.5 or 2 for one,
+**Outlaw Points** are the soft currency. A cracked wallet pays OP by its level (`WALLET_OP`): 10 for levels 1 and 2,
+20 for 3 and 4, 30 for 5 and 6, 40 for 7 and 8, 50 for 9 and 10, 75 for level 11 and 100 for level 12, times 1, 1.5 or 2 for one,
 two or three stars (`walletOp`); a wiped wallet pays none. Downing a bear or lion pays 5 OP, other animals
 1. OP buys reloads, horses and Temporary Trojan Horses, and never converts to RF.
 
