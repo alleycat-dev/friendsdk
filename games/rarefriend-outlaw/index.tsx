@@ -4125,12 +4125,11 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     };
     // After a hack: back to the starting point in front of the Exchange, outside, on the horse you ride (if any).
     sendHome.current = now => {
-      // A hack inside a building left your own horse parked at its door: it comes home too, to its spot by the start.
-      const fromInside = sceneRef.current !== "outside";
       sceneRef.current = "outside"; setInside(null);
       movement = createMovement(spawn, sceneWalkable("outside")); mover.current = movement;
       const mount = ridden(); if (mount) { mount.position = [...spawn]; movement.setSpeed(HORSE.speed); }
-      if (fromInside) for (const horse of horses.current) {
+      // Whenever you are sent home, your own horse comes too (unless you ride it, and then it already has): to its spot by the start.
+      for (const horse of horses.current) {
         if (horse.mounted) continue;
         if (horse.kind === "permanent") horse.position = startHorseSpot();
         else if (horse.kind === "golden") horse.position = goldenSpot();
