@@ -5,7 +5,7 @@
 // echo. Like the SDK's sound kit: creating the player makes no AudioContext; `unlock()` must be called from a player gesture;
 // muted, locked or hidden players drop cues instead of queueing them.
 
-export const SOUND_IDS = ["laser", "hoof", "step", "bump", "showdown", "flip", "smash", "strike", "twist", "win",
+export const SOUND_IDS = ["laser", "hoof", "step", "bump", "showdown", "flip", "smash", "strike", "twist", "wipe", "win",
   "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "caw", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
   "roar", "growl", "yip", "dragon", "wail"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
@@ -19,7 +19,8 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   bump: "Walking into an outlaw (who robs you): like walking into something, a body thump and a hollow bonk",
   smash: "Hitting a defender in a hack: demolishing brickwork, a crack, crumbling stone and a thud (a bigger collapse when it breaks)",
   strike: "Losing Integrity in a hack to a bomb, a bite or the like (a hit's instant strike-back is covered by the smash): an anvil thud under a low twang",
-  twist: "A twist striking (RUGPULL!!!): whip crack, a falling whistle and a trembling guitar chord",
+  twist: "A twist striking (RUGPULL!!!): an ominous discovery, ta-da-daaa: two low brass stabs, then a dark held chord with a cymbal swell",
+  wipe: "A wiped wallet (the board lost): whip crack, a falling whistle and a trembling guitar chord",
   win: "A cracked wallet: a mariachi trumpet flourish over a strummed chord",
   meow: "Cat: a low, raspy tomcat's mrrrAOW, a little vicious",
   bark: "Dog: two full barks from the chest, woof, woof",
@@ -574,6 +575,30 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "twist": {
+      // An ominous discovery, "ta-da-daaa": two short, low brass stabs on A with a timpani thump, then a big dark chord held (Bb, Db
+      // and E, a diminished menace) in brass and tremolo strings, a timpani hit under it and a cymbal swelling up behind.
+      const stab = (at: number, notes: readonly number[], len: number, level: number) => {
+        for (const note of notes) trumpet(o, t + at, hz(note), len, level);
+        const low = ctx.createOscillator(), lg = ctx.createGain(), lp = ctx.createBiquadFilter();
+        low.type = "sawtooth"; low.frequency.value = hz(notes[0] - 12); lp.type = "lowpass"; lp.frequency.value = 500;
+        lg.gain.setValueAtTime(0.0001, t + at); lg.gain.exponentialRampToValueAtTime(level * 1.4, t + at + 0.02); lg.gain.setValueAtTime(level * 1.2, t + at + len - 0.1); lg.gain.exponentialRampToValueAtTime(0.0001, t + at + len);
+        low.connect(lp).connect(lg); send(o, lg, 0.5); low.start(t + at); low.stop(t + at + len + 0.05);
+      };
+      const timpani = (at: number, note: number, level: number) => {
+        const drum = ctx.createOscillator(), dg = ctx.createGain();
+        drum.type = "sine"; drum.frequency.setValueAtTime(hz(note) * 1.25, t + at); drum.frequency.exponentialRampToValueAtTime(hz(note), t + at + 0.08);
+        dg.gain.setValueAtTime(0.0001, t + at); dg.gain.exponentialRampToValueAtTime(level, t + at + 0.006); dg.gain.exponentialRampToValueAtTime(0.0001, t + at + 1.4);
+        drum.connect(dg); send(o, dg, 0.5); drum.start(t + at); drum.stop(t + at + 1.5);
+        thud(o, t + at, hz(note), level * 0.8);
+      };
+      stab(0, [-12, -24 + 12], 0.16, 0.055); timpani(0, -36, 0.2);
+      stab(0.24, [-12, -24 + 12], 0.16, 0.055); timpani(0.24, -36, 0.18);
+      stab(0.52, [-11, -8, -5], 1.9, 0.05); timpani(0.52, -35, 0.26);
+      for (let k = 0; k < 18; k++) strum(o, t + 0.55 + k * 0.08, [-23, -20, -17], 0.035 * (1 - k / 22), 0.004, 0.3);
+      noiseBand(o, t + 0.1, 0.9, "highpass", 4000, 7000, 0.7, 0.04, 0.8, 0.6);
+      break;
+    }
+    case "wipe": {
       // The stinger: a whip crack, the falling "wah-wah" whistle, and an A-minor chord trembling on the strings.
       whip(o, t, 0.55);
       whistle(o, t + 0.12, hz(12), hz(7), 0.5, 0.17);   // A5 down to E5
@@ -597,7 +622,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 1, caw: 1.1, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.7, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3, wipe: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {

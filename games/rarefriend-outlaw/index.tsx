@@ -3937,6 +3937,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     const hit = next.tiles.findIndex((tile, index) => isDefender(tile.kind) && before.tiles[index]?.kind === tile.kind && tile.hp < before.tiles[index].hp);
     if (next.twistEvent && next.twistEvent !== before.twistEvent) player.play("twist");
     else if (next.phase === "won" && before.phase !== "won") player.play("win");
+    else if (next.phase === "lost" && before.phase !== "lost") player.play("wipe");
     else if (hit >= 0) player.play("smash", { heavy: next.tiles[hit].hp <= 0 });
     else if (next.grit < before.grit) player.play("strike");
     // The flip's note is the chain's size: it climbs when the chain grows and repeats the last note when it does not.
