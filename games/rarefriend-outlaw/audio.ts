@@ -15,7 +15,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   hoof: "One galloping stride of a riding horse: four hoofbeats, ba-da-da-DUM (played stride after stride)",
   flip: "A hacking-game tile flip: a computer bleep whose note is the chain's size, rising only as the chain grows",
   showdown: "Tumbleweed time: the first time a new outlaw comes near (as its red arrow appears): wind, a distant bell, a lone whistle and a trembling twang",
-  step: "A soft footstep on dry ground (every step while walking)",
+  step: "A soft, light footstep thud (every step while walking)",
   bump: "Walking into an outlaw (who robs you): like walking into something, a body thump and a hollow bonk",
   smash: "Hitting a defender in a hack: demolishing brickwork, a crack, crumbling stone and a thud (a bigger collapse when it breaks)",
   strike: "Losing Integrity in a hack to a bomb, a bite or the like (a hit's instant strike-back is covered by the smash): an anvil thud under a low twang",
@@ -551,11 +551,10 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "step": {
-      // A soft step on dry ground: a muffled scuff of grit and a faint thud of the heel, a little different every time.
-      const tone = 0.85 + Math.random() * 0.3;
-      noiseBand(o, t, 0.07, "lowpass", 900 * tone, 350 * tone, 0.7, 0.08, 0.004, 0);
-      noiseBand(o, t + 0.01, 0.04, "bandpass", 2200 * tone, 1600 * tone, 1.5, 0.02, 0.003, 0);
-      thud(o, t, 110 * tone, 0.08);
+      // A soft, light step: mostly a gentle low thud of the foot landing, with only a hush of the ground under it (no gritty scuff).
+      const tone = 0.9 + Math.random() * 0.2;
+      thud(o, t, 95 * tone, 0.06);
+      noiseBand(o, t, 0.05, "lowpass", 420 * tone, 220 * tone, 0.7, 0.03, 0.006, 0);
       break;
     }
     case "bump": {
