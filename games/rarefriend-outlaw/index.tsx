@@ -13,6 +13,7 @@ import { rollKeepsake, PERK_TEXT } from "./loot";
 import { RewardsFrame, RARITY_COLOUR, type LootRarity, type RewardItem } from "./rewards";
 import { TROPHIES, drawTrophy } from "./trophies";
 import { PLAYTEST } from "./playtest";
+import { createOutlawAudio } from "./audio";
 import { COSMETICS, COSMETIC_IDS, SLOT_ACTION, cosmeticForKeepsake, drawGearBehind, drawGearFront, drawLiquidatorGun, drawDiamondCleaver, drawPet, diplomaBitmap, type CosmeticId, type Gear } from "./cosmetics";
 import { GameMenu } from "@rarefriends/friendsdk/frame";
 import { RF, maximumPrize, type GameSnapshot } from "@rarefriends/friendsdk/game";
@@ -665,6 +666,8 @@ type RunEnd = { reason: string; outcome: string; reward: bigint };
 /** Playtesting: true starts every new game with the Permanent Trojan Horse, owned and waiting left of the start (startHorseSpot);
  * false (the released game) makes it a PERMANENT_HORSE_OP purchase at the Exchange. */
 const PLAYTEST_START_HORSE = false;
+/** Time between a riding horse's clip-clops. */
+const HOOF_STRIDE_MS = 280;
 const PERMANENT_HORSE_OP = 150, TEMP_HORSE_OP = 10, HORSE_TEMP_MS = 30_000, WILD_TEMP_HORSES = 2;
 /** A Laser Gun is LASER_CHARGES of the SDK consumable bought at once (client.buy / play); the nets are simulated locally. The
  * Charging Station's terminal reloads it, one more consumable per RF, up to LASER_MAX charges in the gun. */
@@ -3839,6 +3842,26 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   const [permanentHorse, setPermanentHorse] = useState(PLAYTEST_START_HORSE);
   const discovered = useRef<Discovered>(freshDiscovery());
   const [wallet, setWallet] = useState<{ npcId: number; name?: string; state: WalletState | "probing" } | null>(null);
+  // Sound (audio.ts): one player for the session, switched on by the first click, tap or key; Settings mutes it or sets its volume.
+  const audio = useRef<ReturnType<typeof createOutlawAudio> | null>(null);
+  if (!audio.current) audio.current = createOutlawAudio();
+  const [soundOn, setSoundOn] = useState(true), [soundVolume, setSoundVolume] = useState(0.7);
+  useEffect(() => { audio.current?.setMuted(!soundOn); audio.current?.setVolume(soundVolume); }, [soundOn, soundVolume]);
+  useEffect(() => () => audio.current?.dispose(), []);
+  // The hacking board's cues come from comparing each new board state with the last: a tile uncovered plucks the next note of the
+  // scale, lost Integrity is a strike-back, a new twist event is its stinger, and a cracked wallet plays the win flourish.
+  const lastBoard = useRef<WalletState | null>(null), flipStep = useRef(0);
+  useEffect(() => {
+    const next = wallet && wallet.state !== "probing" ? wallet.state : null, before = lastBoard.current;
+    lastBoard.current = next;
+    if (!next) { flipStep.current = 0; return; }
+    if (!before || before === next) return;
+    const player = audio.current!, revealed = (board: WalletState) => board.tiles.filter(tile => tile.revealed).length;
+    if (next.twistEvent && next.twistEvent !== before.twistEvent) player.play("twist");
+    else if (next.phase === "won" && before.phase !== "won") player.play("win");
+    else if (next.grit < before.grit) player.play("strike");
+    else if (revealed(next) > revealed(before)) player.play("flip", { step: flipStep.current++ });
+  }, [wallet]);
   const walletSettled = useRef(-1); // npcId whose wallet outcome has been paid out or closed, guarding against double awards
   // The "neutralized" dialog: the belongings list, then the kill-switch warning, then (after "Heck no") the voice-command notice.
   const [prompt, setPrompt] = useState<{ npcId: number; name: string; step: "list" | "killswitch" | "voice" | "exited" } | null>(null);
@@ -4051,6 +4074,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
       const reader = createFriendReader();
       CRYO_FRIEND_IDS.forEach((id, slot) => void reader.read(id).then(art => { if (!abort.signal.aborted) cryoFriends.current[slot] = art; }, () => { /* the tube stays empty */ }));
     };
+    let lastHoof = 0;
     let cancelled = false, frame = 0, previous = 0, lastDebug = 0, shopLatch = false, terminalLatch = false, lastPoster = -1, side: "left" | "right" = "right", doorCooldown = 0;
     const enterBuilding = (kind: BuildingKind, now: number) => {
       const mount = ridden(); if (mount) {
@@ -4468,6 +4492,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           for (const mount of horses.current) {
             const horseAt = mount.mounted ? { x: VIEW.width / 2, y: VIEW.height / 2 } : toScreen(mount.position);
             const gallop = mount.mounted && state.walking && !live.current.reducedMotion ? Math.floor(now / 140) % 2 * 2 : 0;
+            // Hoofbeats: a clip-clop every stride while the ridden horse is moving.
+            if (mount.mounted && state.walking && now - lastHoof >= HOOF_STRIDE_MS) { lastHoof = now; audio.current?.play("hoof"); }
             // While mounted the horse takes the Friend's current facing and depth, so its parts never sort against a stale position.
             const horseParts = !interior && onScreen(horseAt, 160) ? horseLayers(ctx, mount.mounted ? state.facing : mount.facing, horseAt.x, horseAt.y - gallop, mount.mounted, mount.kind) : null;
             const horseDepth = mount.mounted ? state.position[0] + state.position[1] : mount.position[0] + mount.position[1];
@@ -5147,6 +5173,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
       if (angle <= AIM_CONE) { best = far; dir = [dx / far, dy / far]; }
     }
     shots.current.push({ position: [...position], dir, travelled: 0, muzzle: MUZZLE[facing] });
+    audio.current?.play("laser");
     setStats(value => ({ ...value, shots: value.shots + 1 }));
     setShotsLeft(value => (value > 0n ? value - 1n : 0n));
   }
@@ -5213,7 +5240,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   const inputBlocked = uiBlocked || Boolean(wallet) || Boolean(prompt) || Boolean(viewPoster) || Boolean(status);
 
   return (
-    <section className="outlaw-game" aria-label="Rarefriend Outlaw" aria-busy={paused || busy}>
+    <section className="outlaw-game" aria-label="Rarefriend Outlaw" aria-busy={paused || busy}
+      onPointerDownCapture={() => void audio.current?.unlock()} onKeyDownCapture={() => void audio.current?.unlock()}>
       <div className="outlaw-world" inert={uiBlocked || undefined}>
         <canvas ref={canvasRef} width={VIEW.width} height={VIEW.height} className="outlaw-canvas" tabIndex={inputBlocked ? -1 : 0}
           aria-label="Open country. WASD or arrows to walk. Tap a destination. Walk into the Centralised Exchange to shop. I opens the inventory, M the large map. Q switches what you hold. Space uses it."
@@ -5558,6 +5586,12 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           <p>Stills the decorative animation: bobbing and hopping animals, blinking lights, pulsing markers, the frozen Friends' bubbles, and
             in the hacking game the sweeps, sparks, floating numbers and flying programs (they land at once). It starts on when your device
             asks for reduced motion. The game plays the same either way.</p>
+          <h3>Sound</h3>
+          <label><input type="checkbox" checked={soundOn} onChange={event => setSoundOn(event.target.checked)} /> Sound on</label>
+          <label className="outlaw-volume">Volume <input type="range" min={0} max={1} step={0.05} value={soundVolume} disabled={!soundOn}
+            onChange={event => setSoundVolume(Number(event.target.value))} aria-label="Sound volume" /></label>
+          <p>Spaghetti-Western sound effects made in code. Sound starts after your first click, tap or key press, and stops while the
+            game's tab is hidden.</p>
           <h3>Credits</h3>
           <p><strong>Alley Cat</strong> · Lead Developer</p>
           <p>Built with Claude Code (Anthropic)</p>

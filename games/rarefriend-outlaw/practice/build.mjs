@@ -17,7 +17,7 @@ const sdk = { name: "friendsdk", setup(b) {
 } };
 await mkdir(out, { recursive: true });
 await build({
-  entryPoints: { practice: resolve(here, "practice.tsx") }, outdir: out, bundle: true, format: "iife", platform: "browser", target: "es2022",
+  entryPoints: { practice: resolve(here, "practice.tsx"), sounds: resolve(here, "sounds.tsx") }, outdir: out, bundle: true, format: "iife", platform: "browser", target: "es2022",
   jsx: "automatic", minify: true, define: { "process.env.NODE_ENV": '"production"' }, plugins: [sdk], logLevel: "warning",
 });
 await writeFile(resolve(out, "index.html"), `<!doctype html>
@@ -27,4 +27,12 @@ await writeFile(resolve(out, "index.html"), `<!doctype html>
 <body><div id="root"></div><script src="practice.js"></script></body>
 </html>
 `);
-console.log(`Built ${resolve(out, "index.html")}`);
+await writeFile(resolve(out, "sounds.html"), `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Outlaw sound preview</title>
+<link rel="stylesheet" href="sounds.css"></head>
+<body><div id="root"></div><script src="sounds.js"></script></body>
+</html>
+`);
+await writeFile(resolve(out, "sounds.css"), await readFile(resolve(here, "sounds.css"), "utf8"));
+console.log(`Built ${resolve(out, "index.html")} and ${resolve(out, "sounds.html")}`);

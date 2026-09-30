@@ -1016,6 +1016,20 @@ page with bundler-style imports:
 npx tsc -p games/rarefriend-outlaw/tsconfig.json
 ```
 
+## Sound (work in progress, `sound` branch)
+
+Spaghetti-Western sound effects, all synthesized in code with the Web Audio API in `audio.ts` (no recordings or samples): a
+plucked, twangy guitar string (Karplus-Strong), a whistle with vibrato, a whip crack, wood-block hoofbeats, a mariachi trumpet and
+an anvil thud, through a short spring-reverb echo. The first cues: `laser` (a pew with a whistling ricochet, on every shot),
+`hoof` (a clip-clop every stride while riding), `flip` (a guitar pluck per uncovered tile, walking an A-minor scale), `strike`
+(lost Integrity), `twist` (a twist striking: whip crack, falling whistle, trembling chord) and `win` (a cracked wallet: a mariachi
+flourish). Sound starts after the first click, tap or key press (browsers require it) and stops while the tab is hidden; Settings
+has **Sound on** (mute) and a volume slider.
+
+Listen without the game: build the practice pages, then open `practice/dist/sounds.html` (buttons for every cue, WAV downloads),
+or render them all to `practice/dist/wav/` with `node games/rarefriend-outlaw/tools/sounds.mjs`, which also prints each cue's
+length and peak level.
+
 ## Hardware Wallet practice page
 
 `practice/` is a local developer tool for testing the hacking game on its

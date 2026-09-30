@@ -640,3 +640,6 @@
     background: #f6eedc; border: 2px solid #000; font: bold 13px/1 monospace;
   }
 }
+
+/* Settings: the sound volume slider on its own line. */
+.outlaw-game .outlaw-volume { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
