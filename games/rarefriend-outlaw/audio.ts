@@ -1,7 +1,7 @@
 // Rarefriend Outlaw's sound: spaghetti-Western cues synthesized from code with the Web Audio API (no recordings, no samples).
 //
 // The palette: a plucked, twangy guitar string (Karplus-Strong), a whistle with a slow vibrato, a whip crack, wood-block hoofbeats,
-// a brassy mariachi trumpet, a low anvil thud and a laser "pew" with a whistling ricochet, all sent through a short spring-reverb
+// a brassy mariachi trumpet, a hollow bump and a laser "pew" with a whistling ricochet, all sent through a short spring-reverb
 // echo. Like the SDK's sound kit: creating the player makes no AudioContext; `unlock()` must be called from a player gesture;
 // muted, locked or hidden players drop cues instead of queueing them.
 
@@ -12,7 +12,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   laser: "Laser Gun shot: a pew with a whistling ricochet",
   hoof: "One galloping stride of a riding horse: four hoofbeats, ba-da-da-DUM (played stride after stride)",
   flip: "A hacking-game tile flip: a guitar pluck, stepping through an A-minor scale",
-  strike: "A defender's strike-back: an anvil thud under a low twang",
+  strike: "Losing Integrity (a strike-back, a bomb, a bite): like walking into something, a body thump and a hollow bonk",
   twist: "A twist striking (RUGPULL!!!): whip crack, a falling whistle and a trembling guitar chord",
   win: "A cracked wallet: a mariachi trumpet flourish over a strummed chord",
 };
@@ -177,18 +177,19 @@ function cue(o: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "strike": {
-      // The anvil: a low sine that drops in pitch, a metallic ring on top, and the guitar's low E hit hard underneath.
-      const body = ctx.createOscillator(), g = ctx.createGain();
-      body.type = "sine"; body.frequency.setValueAtTime(150, t); body.frequency.exponentialRampToValueAtTime(55, t + 0.25);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.55, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-      body.connect(g); send(o, g, 0.2); body.start(t); body.stop(t + 0.4);
-      for (const [f, level] of [[1180, 0.07], [1710, 0.05], [2630, 0.035]] as const) {
-        const ring = ctx.createOscillator(), rg = ctx.createGain();
-        ring.type = "sine"; ring.frequency.value = f;
-        rg.gain.setValueAtTime(level, t); rg.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-        ring.connect(rg); send(o, rg, 0.5); ring.start(t); ring.stop(t + 0.65);
+      // Walking into something: a soft, heavy body thump, a muffled knock of wood, and a short hollow "bonk" that bounces once.
+      thud(o, t, 85, 0.5);
+      const knock = noiseSource(ctx, 0.1), lp = ctx.createBiquadFilter(), kg = ctx.createGain();
+      lp.type = "lowpass"; lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(300, t + 0.06);
+      kg.gain.setValueAtTime(0.0001, t); kg.gain.exponentialRampToValueAtTime(0.35, t + 0.003); kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+      knock.connect(lp).connect(kg); send(o, kg, 0.05); knock.start(t); knock.stop(t + 0.1);
+      for (const [at, from, to, level] of [[0, 330, 190, 0.26], [0.1, 250, 170, 0.1]] as const) {
+        const bonk = ctx.createOscillator(), bg = ctx.createGain(), body = ctx.createBiquadFilter();
+        bonk.type = "triangle"; bonk.frequency.setValueAtTime(from, t + at); bonk.frequency.exponentialRampToValueAtTime(to, t + at + 0.09);
+        body.type = "lowpass"; body.frequency.value = 1200;
+        bg.gain.setValueAtTime(0.0001, t + at); bg.gain.exponentialRampToValueAtTime(level, t + at + 0.005); bg.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.13);
+        bonk.connect(body).connect(bg); send(o, bg, 0.08); bonk.start(t + at); bonk.stop(t + at + 0.15);
       }
-      pluck(o, t + 0.01, hz(-29), 0.5, 1.2, 0.992, 0.3); // E2
       break;
     }
     case "twist": {
@@ -213,7 +214,7 @@ function cue(o: Out, id: SoundId, t: number, options: CueOptions = {}) {
   }
 }
 /** How long each cue rings, in seconds (for rendering previews). */
-export const CUE_SECONDS: Readonly<Record<SoundId, number>> = { laser: 0.7, hoof: 0.45, flip: 1, strike: 1.3, twist: 3.6, win: 2.9 };
+export const CUE_SECONDS: Readonly<Record<SoundId, number>> = { laser: 0.7, hoof: 0.45, flip: 1, strike: 0.45, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {
