@@ -18,7 +18,7 @@ const cues = await page.evaluate(async () => {
   const { renderCue, wavBytes, SOUND_IDS } = window.outlawSounds, rendered = [];
   const base64 = bytes => { let text = ""; for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(text); };
   for (const id of SOUND_IDS) {
-    const buffer = await renderCue(id, { step: 2, species: "cow" });
+    const buffer = await renderCue(id, { step: 2, species: id === "blast" ? "bomb" : "cow" });
     let peak = 0, sum = 0;
     for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
     rendered.push({ id, seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) });
@@ -30,6 +30,10 @@ const cues = await page.evaluate(async () => {
     // Every shot animal's cry, one after another.
     wails: ["rabbit", "deer", "cow", "pig", "ostrich", "snake", "lion", "bear", "dragon"].map((species, k) => ({ id: "wail", at: k * 1.6, options: { species } })),
     "smash-break": [{ id: "smash", at: 0, options: { heavy: true } }],
+    // Hitting each defender, then breaking it: Firewall, Tamper Alarm, Validator, Whale, Secure Chip.
+    defenders: ["wall", "alarm", "validator", "whale", "chip"].flatMap((species, k) => [{ id: "smash", at: k * 3, options: { species } }, { id: "smash", at: k * 3 + 1.2, options: { species, heavy: true } }]),
+    // Each attacker going off: Difficulty Bomb, Reentrancy Attack, Hard Fork, Gas Spike.
+    attackers: ["bomb", "reentrancy", "fork", "gasspike"].map((species, k) => ({ id: "blast", at: k * 2, options: { species } })),
     // Flips as a chain grows and stalls: the note climbs only when the chain does.
     // The swarm's hum as it plays near the hive: overlapping pieces, two voices.
     swarm: [...Array(8)].flatMap((_, k) => [{ id: "buzz", at: k * 0.65 }, { id: "buzz", at: k * 0.65 + 0.3, options: { pan: 0.4, gain: 0.7 } }]),

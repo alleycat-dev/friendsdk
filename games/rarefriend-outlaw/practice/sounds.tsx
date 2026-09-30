@@ -32,6 +32,12 @@ function SoundPreview() {
     <h2>Shot animals</h2>
     <p>{["rabbit", "deer", "cow", "pig", "ostrich", "snake", "lion", "bear", "dragon"].map(species =>
       <button key={species} type="button" onClick={() => void play("wail", { species } as { step?: number })}>{species}</button>)}</p>
+    <h2>Hacking game</h2>
+    <p>Hit / break: {["wall", "alarm", "validator", "whale", "chip"].map(species => <span key={species}>
+      <button type="button" onClick={() => void play("smash", { species } as { step?: number })}>{species}</button>
+      <button type="button" className="small" onClick={() => void play("smash", { species, heavy: true } as { step?: number })}>break</button>{" "}</span>)}</p>
+    <p>Attackers: {["bomb", "reentrancy", "fork", "gasspike"].map(species =>
+      <button key={species} type="button" onClick={() => void play("blast", { species } as { step?: number })}>{species}</button>)}</p>
     <h2>Music</h2>
     <p><button type="button" onClick={async () => { if (await audio.current.unlock()) setMusic(value => !value); }}>{music ? "Stop" : "Play"} the music</button> It changes at the next bar:{" "}
       {([["calm", "Lonesome Trail (walking)"], ["ride", "Trail Gallop (riding)"], ["tense", "The Standoff (outlaw near)"], ["hack", "Trace (hacking game)"]] as const).map(([id, label]) =>

@@ -688,6 +688,8 @@ const ANIMAL_LOOPS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: num
 /** At most this many animal calls start in any one second, however big the crowd. */
 const MAX_CALLS_PER_SECOND = 5;
 const HEAR_RANGE = 520; // world units: animals further away are not heard
+/** An uncovered attacker shows on its tile this long (ms) before its blow lands: the flash, the damage and its sound. */
+const ATTACK_HOLD_MS = 250;
 /** How long a touch on a program slot must be held to act like a right-click (sell under a margin call, otherwise discard). */
 const HOLD_MS = 500;
 /** Time between footsteps while walking (not riding). */
@@ -3267,6 +3269,10 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
   // `hold`: how long it waits on its tile before flying (a newly flipped program PICKUP_HOLD, one clicked on the board none).
   const pickups = useRef<{ id: ProgramId; slot: number; tile: number; at: number; hold: number }[]>([]), lastSlots = useRef<readonly ProgramId[] | null>(null);
   const claimSeen = useRef<object | null>(null);
+  /** Attackers just uncovered, and when: each stays armed (in colour) on its tile for ATTACK_HOLD_MS before its blow. */
+  const prevBoard = useRef<WalletState | null>(null), armedAt = useRef(new Map<number, number>());
+  // The readout before an attacker went off, shown until it blows so Integrity (or Equity) drops with the blast.
+  const heldHud = useRef<{ state: WalletState; until: number } | null>(null);
   const [help, setHelp] = useState(false);
   const [ownBriefing, setOwnBriefing] = useState(true);
   const briefed = briefing === undefined ? !ownBriefing : !briefing;
@@ -3349,6 +3355,14 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
       // A newly loaded slot starts a pickup from the tile that held the program (the probe: flipping or claiming it made it so). A
       // pickup whose slot no longer holds its program (run, discarded, drained, a new board) is dropped.
       const before = lastSlots.current; lastSlots.current = current.slots;
+      if (current !== prevBoard.current) {
+        const prev = prevBoard.current;
+        if (!prev || prev.tiles.length !== current.tiles.length) armedAt.current.clear();
+        else current.tiles.forEach((tile, i) => {
+          if (isAttacker(tile.kind) && tile.revealed && !prev.tiles[i].revealed) { armedAt.current.set(i, now); heldHud.current = { state: prev, until: now + ATTACK_HOLD_MS }; }
+        });
+        prevBoard.current = current;
+      }
       // A program clicked where it lay on the board flies from that tile straight away.
       const clicked = current.claimedFrom && current.claimedFrom !== claimSeen.current ? current.claimedFrom : null;
       if (clicked) claimSeen.current = clicked;
@@ -3484,7 +3498,8 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
         } else {
           // Icons stand up on their tile like the world's sprites, feet near the tile's centre.
           // Defenders stand until beaten; attackers are spent the moment they show, so they are always drawn in greys.
-          const icon = tileIcon(tile), dead = (isDefender(tile.kind) && tile.hp <= 0) || isAttacker(tile.kind);
+          const armed = armedAt.current.get(index), primed = armed !== undefined && now - armed < ATTACK_HOLD_MS;
+          const icon = tileIcon(tile), dead = (isDefender(tile.kind) && tile.hp <= 0) || (isAttacker(tile.kind) && !primed);
           if (icon) drawWalletIcon(ctx, icon, centre.x, centre.y + 4, isDefender(tile.kind) || isAttacker(tile.kind) || tile.kind === "cold" ? ICON_SIZE * DEFENDER_ICON_SCALE : ICON_SIZE, dead);
           // A Cold Storage shows how many of its neighbours are revealed, toward its thaw.
           if (isFrozenCold(tile)) drawPixelBadge(ctx, `${coldRevealed(current, index)}/${COLD_THAW}`, centre.x + 9, centre.y - 30, "#e8f4ff", "#2b5a80");
@@ -3552,10 +3567,10 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
       // A sandwich that hurt (gold) or a Difficulty Bomb going off (orange, with a burst of sparks): the tile flashes and the
       // Integrity it took floats up.
       if (current.sandwiched && current.sandwiched !== squeezeSeen.current) { squeezeSeen.current = current.sandwiched; squeezeAnim.current = { ...current.sandwiched, at: now }; }
-      if (current.exploded && current.exploded !== blastSeen.current) { blastSeen.current = current.exploded; blastAnim.current = { ...current.exploded, at: now }; }
+      if (current.exploded && current.exploded !== blastSeen.current) { blastSeen.current = current.exploded; blastAnim.current = { ...current.exploded, at: now + ATTACK_HOLD_MS }; }
       for (const [hurt, tint, sparks] of [[squeezeAnim.current, "212, 175, 55", false], [blastAnim.current, "255, 138, 42", true]] as const) {
         const hurtT = hurt ? (now - hurt.at) / 1000 : 2;
-        if (!hurt || hurtT >= 1.2) continue;
+        if (!hurt || hurtT < 0 || hurtT >= 1.2) continue;
         const c = at(hurt.tile % n + 0.5, Math.floor(hurt.tile / n) + 0.5), fade = Math.max(0, 1 - hurtT / 1.2);
         diamond(hurt.tile % n, Math.floor(hurt.tile / n)); ctx.fillStyle = `rgba(${tint}, ${0.75 * fade})`; ctx.fill();
         if (sparks && !still) for (let i = 0; i < 12; i++) {
@@ -3630,15 +3645,16 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
       // bar, the program slots and their label above it, and the status lines above those.
       const gy = 80, ty = (inGame ? 528 : 568) + 19; // the trace sits 0.5 cm (19 px) lower than the earlier layout
       ctx.textAlign = "left"; ctx.font = "bold 14px ui-monospace, monospace"; ctx.fillStyle = "#f5e9d0";
-      ctx.fillText(equity ? `EQUITY ${Math.round(equityOf(current) * 100)}%` : `INTEGRITY ${current.grit} / ${tier.grit}`, 24, gy);
+      const hud = heldHud.current && now < heldHud.current.until ? heldHud.current.state : current;
+      ctx.fillText(equity ? `EQUITY ${Math.round(equityOf(hud) * 100)}%` : `INTEGRITY ${hud.grit} / ${tier.grit}`, 24, gy);
       // Integrity drains and the trace fills; both run green, yellow, orange then red by quarters used, and blink with 3 left.
       const bandColour = (left: number, full: number) => { const used = 1 - left / full; return used < 0.25 ? "#3fbf4f" : used < 0.5 ? "#f2d43c" : used < 0.75 ? "#ff8a2a" : "#d94f3c"; };
       const blink = (left: number) => left <= 3 && !still && Math.floor(now / 300) % 2 === 1;
       ctx.fillStyle = "#3a2a20"; ctx.fillRect(24, gy + 8, 150, 10);
       // The Equity bar is green above the margin call (60%), orange down to forced selling (40%) and red below; the Integrity bar
       // runs its usual quarters.
-      const equityColour = equityOf(current) > EQUITY.margin ? "#3fbf4f" : equityOf(current) > EQUITY.forced ? "#ff8a2a" : "#d94f3c";
-      ctx.fillStyle = blink(current.grit) ? "#ff8a80" : equity ? equityColour : bandColour(current.grit, tier.grit); ctx.fillRect(24, gy + 8, Math.max(0, Math.min(150, Math.round(150 * current.grit / tier.grit))), 10);
+      const equityColour = equityOf(hud) > EQUITY.margin ? "#3fbf4f" : equityOf(hud) > EQUITY.forced ? "#ff8a2a" : "#d94f3c";
+      ctx.fillStyle = blink(hud.grit) ? "#ff8a80" : equity ? equityColour : bandColour(hud.grit, tier.grit); ctx.fillRect(24, gy + 8, Math.max(0, Math.min(150, Math.round(150 * hud.grit / tier.grit))), 10);
       // The Equity bar's thresholds: an orange line at the margin call (60%) and a red one at forced selling (40%), each a
       // two-pixel bar standing a little proud of the bar's top and bottom.
       if (equity) for (const [share, colour] of [[EQUITY.margin, "#ff8a2a"], [EQUITY.forced, "#d94f3c"]] as const) {
@@ -3965,10 +3981,13 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     const player = audio.current!, revealed = (board: WalletState) => board.tiles.filter(tile => tile.revealed).length;
     // A defender hit: its HP dropped (a strike-back lands at the same moment, so the smash stands for both).
     const hit = next.tiles.findIndex((tile, index) => isDefender(tile.kind) && before.tiles[index]?.kind === tile.kind && tile.hp < before.tiles[index].hp);
+    // An attacker just uncovered: its own blow, a quarter of a second later (it shows on its tile first, see ATTACK_HOLD_MS).
+    const sprung = next.tiles.findIndex((tile, index) => isAttacker(tile.kind) && tile.revealed && !before.tiles[index]?.revealed);
     if (next.twistEvent && next.twistEvent !== before.twistEvent) player.play("twist");
     else if (next.phase === "won" && before.phase !== "won") player.play("win");
     else if (next.phase === "lost" && before.phase !== "lost") player.play("wipe");
-    else if (hit >= 0) player.play("smash", { heavy: next.tiles[hit].hp <= 0 });
+    else if (sprung >= 0) player.play("blast", { species: next.tiles[sprung].kind, delay: ATTACK_HOLD_MS / 1000 });
+    else if (hit >= 0) player.play("smash", { species: next.tiles[hit].kind, heavy: next.tiles[hit].hp <= 0 });
     else if (next.grit < before.grit) player.play("strike");
     // The flip's note is the chain's size: it climbs when the chain grows and repeats the last note when it does not.
     else if (revealed(next) > revealed(before)) player.play("flip", { step: Math.max(0, next.chain - 1) });

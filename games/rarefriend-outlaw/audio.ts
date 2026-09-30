@@ -8,7 +8,7 @@
 export const SOUND_IDS = ["laser", "hoof", "step", "bump", "showdown", "down", "flip", "smash", "strike", "twist", "wipe", "win",
   "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "caw", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
   "roar", "growl", "yip", "dragon", "wail",
-  "lock", "coins", "trophy", "vault", "tick", "drumroll", "land", "tumbleweed", "sparks", "fireworks", "fanfare"] as const;
+  "blast", "lock", "coins", "trophy", "vault", "tick", "drumroll", "land", "tumbleweed", "sparks", "fireworks", "fanfare"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
 /** What each cue is for, for the preview page and the README. */
 export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
@@ -19,7 +19,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   step: "A soft, light footstep thud (every step while walking)",
   down: "An outlaw shot down (his loot window opens): a small victory, a quick trumpet ta-da over a strummed chord",
   bump: "Walking into an outlaw (who robs you): like walking into something, a body thump and a hollow bonk",
-  smash: "Hitting a defender in a hack: demolishing brickwork, a crack, crumbling stone and a thud (a bigger collapse when it breaks)",
+  smash: "Hitting a defender in a hack, in its own sound (`species`; `heavy` when it breaks): the Firewall's brickwork, the Tamper Alarm's bell, the Validator's electric buzz, the Whale's splash and groan, the Secure Chip's crackle and shatter",
   strike: "Losing Integrity in a hack to a bomb, a bite or the like (a hit's instant strike-back is covered by the smash): an anvil thud under a low twang",
   twist: "A twist striking (RUGPULL!!!): an ominous discovery, ta-da-daaa: two low brass stabs, then a dark held chord with a cymbal swell",
   wipe: "A wiped wallet (the board lost): whip crack, a falling whistle and a trembling guitar chord",
@@ -44,6 +44,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   growl: "Bear: a deep growl",
   yip: "Golden Fox: a high, raspy yelp",
   dragon: "Dragon: a huge roar and a whoosh of fire",
+  blast: "An attacker going off in a hack (`species`): a bomb's explosion, a Reentrancy Attack's echoing call-back loop, a Hard Fork's splitting crack or a Gas Spike's rising hiss",
   lock: "Settlement: a seed word locking into the vault door, a heavy clunk and a chime (a note higher for every word: `step`)",
   coins: "Settlement: coins pouring into the sack and a cash-register bell",
   trophy: "Settlement: a bright bell as a trophy is earned",
@@ -206,6 +207,20 @@ function noiseBand(o: Out, t: number, seconds: number, type: BiquadFilterType, f
   n.connect(filter).connect(g); send(o, g, reverb); n.start(t); n.stop(t + seconds + 0.05);
   return g;
 }
+/** Demolishing a brick (the Firewall hit): a sharp crack, a low thud, then crumbling stone; `heavy` brings the wall down. */
+function smashBrick(o: Out, t: number, heavy: boolean) {
+  // Demolishing a brick: a sharp crack, a low thud, then crumbling stone, grains of grit falling fast and thinning out; a defender
+  // that breaks brings the wall down, longer and heavier, with chunks of rubble bouncing after.
+  const crumble = heavy ? 1.1 : 0.45, grains = heavy ? 55 : 22;
+  noiseBand(o, t, 0.06, "bandpass", 2600, 1800, 1.5, 0.5, 0.002, 0.15);
+  thud(o, t, heavy ? 65 : 85, heavy ? 0.55 : 0.4);
+  noiseBand(o, t + 0.01, crumble, "bandpass", 1400, 700, 0.9, heavy ? 0.16 : 0.1, 0.01, 0.2);
+  for (let k = 0; k < grains; k++) {
+    const at = t + 0.015 + crumble * Math.pow(Math.random(), 1.8), size = Math.random();
+    noiseBand(o, at, 0.012 + size * 0.03, "bandpass", 1500 + (1 - size) * 3500, 1200 + (1 - size) * 3000, 3, (0.04 + size * 0.08) * (1 - (at - t) / (crumble + 0.1)), 0.001, 0.1);
+  }
+  if (heavy) for (const at of [0.35, 0.52, 0.66, 0.82]) { woodBlock(o, t + at + Math.random() * 0.05, 300 + Math.random() * 180, 0.09); thud(o, t + at, 110, 0.12); }
+}
 /** The mariachi trumpet: a bright sawtooth through a swelling low-pass, with a vibrato that arrives late on long notes. */
 function trumpet(o: Out, t: number, freq: number, seconds: number, gain = 0.16) {
   const { ctx } = o, a = ctx.createOscillator(), b = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -240,9 +255,15 @@ function send(o: Out, node: AudioNode, amount: number) {
 
 /** `species`: whose cry a `wail` is. `heavy`: the bigger version of a cue (a defender that breaks). `step`: which note of a scale; `gain` (0-1) and `pan` (-1 left to 1 right) place a sound in the world (an animal's distance and
  * side of the screen). */
-export type CueOptions = { step?: number; gain?: number; pan?: number; heavy?: boolean; species?: string };
+export type CueOptions = { step?: number; gain?: number; pan?: number; heavy?: boolean; species?: string; delay?: number };
+/** Levels that bring the hacking game's hits and blasts up to the Firewall's, measured by their loudest tenth of a second. */
+const SPECIES_LEVEL: Partial<Record<SoundId, Record<string, number>>> = {
+  smash: { alarm: 3, validator: 2.6, whale: 2.8, chip: 4.5 },
+  blast: { reentrancy: 4.5, gasspike: 4.5 },
+};
 function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
-  const o = placed(base, t, options), { ctx } = o;
+  const level = SPECIES_LEVEL[id]?.[options.species ?? ""] ?? 1;
+  const o = placed(base, t, { ...options, gain: (options.gain ?? 1) * level }), { ctx } = o;
   switch (id) {
     case "laser": {
       // A low energy shot: the gun kicks back (a punchy low thump and a mechanical clack), a deep "vwum" of the beam dives down, and
@@ -626,17 +647,83 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "smash": {
-      // Demolishing a brick: a sharp crack, a low thud, then crumbling stone, grains of grit falling fast and thinning out; a defender
-      // that breaks brings the wall down, longer and heavier, with chunks of rubble bouncing after.
-      const heavy = options.heavy ?? false, crumble = heavy ? 1.1 : 0.45, grains = heavy ? 55 : 22;
-      noiseBand(o, t, 0.06, "bandpass", 2600, 1800, 1.5, 0.5, 0.002, 0.15);
-      thud(o, t, heavy ? 65 : 85, heavy ? 0.55 : 0.4);
-      noiseBand(o, t + 0.01, crumble, "bandpass", 1400, 700, 0.9, heavy ? 0.16 : 0.1, 0.01, 0.2);
-      for (let k = 0; k < grains; k++) {
-        const at = t + 0.015 + crumble * Math.pow(Math.random(), 1.8), size = Math.random();
-        noiseBand(o, at, 0.012 + size * 0.03, "bandpass", 1500 + (1 - size) * 3500, 1200 + (1 - size) * 3000, 3, (0.04 + size * 0.08) * (1 - (at - t) / (crumble + 0.1)), 0.001, 0.1);
+      const heavy = options.heavy ?? false;
+      switch (options.species) {
+        case "alarm": {
+          // The Tamper Alarm: a clanging bell struck hard, ringing; broken, it rattles and dies away.
+          for (const [f, level] of [[1480, 0.07], [1480 * 2.76, 0.03], [1480 * 5.4, 0.015]] as const) { const bell = ctx.createOscillator(), bg = ctx.createGain(); bell.type = "sine"; bell.frequency.value = f;
+            bg.gain.setValueAtTime(0.0001, t); bg.gain.exponentialRampToValueAtTime(level, t + 0.003); bg.gain.exponentialRampToValueAtTime(0.0001, t + (heavy ? 0.5 : 1)); bell.connect(bg); send(o, bg, 0.4); bell.start(t); bell.stop(t + 1.05); }
+          noiseBand(o, t, 0.04, "highpass", 3000, 4000, 1, 0.1, 0.001, 0.1);
+          if (heavy) for (let k = 0; k < 8; k++) woodBlock(o, t + 0.25 + k * 0.06 * (1 + k * 0.15), 2400 - k * 150, 0.05 * (1 - k / 9));
+          break;
+        }
+        case "validator": {
+          // The Validator: an electric "denied" buzz with a zap; broken, its power whines down to nothing.
+          const buzz = ctx.createOscillator(), bg = ctx.createGain(), lp = ctx.createBiquadFilter(); buzz.type = "square"; buzz.frequency.setValueAtTime(heavy ? 240 : 150, t);
+          if (heavy) buzz.frequency.exponentialRampToValueAtTime(40, t + 0.9);
+          lp.type = "lowpass"; lp.frequency.value = 1800; bg.gain.setValueAtTime(0.0001, t); bg.gain.exponentialRampToValueAtTime(0.07, t + 0.01); bg.gain.setValueAtTime(0.07, t + (heavy ? 0.6 : 0.18)); bg.gain.exponentialRampToValueAtTime(0.0001, t + (heavy ? 0.95 : 0.25));
+          buzz.connect(lp).connect(bg); send(o, bg, 0.15); buzz.start(t); buzz.stop(t + 1);
+          const zap = ctx.createOscillator(), zg = ctx.createGain(); zap.type = "sawtooth"; zap.frequency.setValueAtTime(2400, t); zap.frequency.exponentialRampToValueAtTime(300, t + 0.12);
+          zg.gain.setValueAtTime(0.05, t); zg.gain.exponentialRampToValueAtTime(0.0001, t + 0.13); zap.connect(zg); send(o, zg, 0.2); zap.start(t); zap.stop(t + 0.14);
+          break;
+        }
+        case "whale": {
+          // The Whale: a splash and a low groan; broken, a big splash and a long, falling moan.
+          noiseBand(o, t, heavy ? 0.9 : 0.45, "lowpass", 2200, 400, 0.8, heavy ? 0.14 : 0.15, 0.01, 0.3);
+          voice(o, t + 0.05, { seconds: heavy ? 1.4 : 0.6, gain: heavy ? 0.19 : 0.22, wave: "sine", breath: 0.1, attack: 0.08, release: 0.3, pitch: heavy ? [[0, 190], [0.4, 150], [1.4, 60]] : [[0, 140], [0.6, 110]],
+            formants: [{ f: [[0, 300], [1, 250]], q: 2, gain: 1 }, { f: [[0, 700], [1, 600]], q: 3, gain: 0.4 }], reverb: 0.6 });
+          break;
+        }
+        case "chip": {
+          // The Secure Chip: an electric crackle as the silicon cracks; broken, it shatters in a shower of sparks.
+          for (let k = 0; k < (heavy ? 22 : 12); k++) noiseBand(o, t + Math.random() * (heavy ? 0.5 : 0.15), 0.012, "highpass", 5000, 7000, 1, heavy ? 0.07 : 0.09, 0.001, 0.2);
+          const arc = ctx.createOscillator(), ag = ctx.createGain(); arc.type = "sawtooth"; arc.frequency.setValueAtTime(90, t); arc.frequency.linearRampToValueAtTime(70, t + 0.2);
+          ag.gain.setValueAtTime(0.09, t); ag.gain.exponentialRampToValueAtTime(0.0001, t + 0.22); arc.connect(ag); send(o, ag, 0.1); arc.start(t); arc.stop(t + 0.25);
+          if (heavy) for (let k = 0; k < 10; k++) { const shard = ctx.createOscillator(), sg = ctx.createGain(), at = t + 0.03 + Math.random() * 0.25; shard.type = "sine"; shard.frequency.value = 3500 + Math.random() * 4000;
+            sg.gain.setValueAtTime(0.0001, at); sg.gain.exponentialRampToValueAtTime(0.03, at + 0.002); sg.gain.exponentialRampToValueAtTime(0.0001, at + 0.3); shard.connect(sg); send(o, sg, 0.4); shard.start(at); shard.stop(at + 0.32); }
+          break;
+        }
+        default: {
+          // The Firewall (and any other): demolishing brickwork.
+          smashBrick(o, t, heavy);
+        }
       }
-      if (heavy) for (const at of [0.35, 0.52, 0.66, 0.82]) { woodBlock(o, t + at + Math.random() * 0.05, 300 + Math.random() * 180, 0.09); thud(o, t + at, 110, 0.12); }
+      break;
+    }
+    case "blast": {
+      switch (options.species) {
+        case "bomb": {
+          // A Difficulty Bomb: a deep boom, a blast of air and debris raining down.
+          thud(o, t, 42, 0.6); thud(o, t + 0.02, 70, 0.35);
+          noiseBand(o, t, 0.9, "lowpass", 2500, 200, 0.7, 0.3, 0.004, 0.5);
+          for (let k = 0; k < 14; k++) noiseBand(o, t + 0.2 + Math.random() * 0.9, 0.03, "bandpass", 1500 + Math.random() * 2000, 1200, 2, 0.03, 0.002, 0.2);
+          break;
+        }
+        case "reentrancy": {
+          // A Reentrancy Attack: the contract calls back into you: a zap, then a digital loop that echoes and re-enters itself,
+          // each call quicker and fainter.
+          const zap = ctx.createOscillator(), zg = ctx.createGain(); zap.type = "square"; zap.frequency.setValueAtTime(1800, t); zap.frequency.exponentialRampToValueAtTime(220, t + 0.15);
+          zg.gain.setValueAtTime(0.13, t); zg.gain.exponentialRampToValueAtTime(0.0001, t + 0.16); zap.connect(zg); send(o, zg, 0.2); zap.start(t); zap.stop(t + 0.17);
+          for (let k = 0, at = 0.16; k < 7; k++, at += 0.14 * 0.85 ** k) {
+            const call = ctx.createOscillator(), cg = ctx.createGain(); call.type = "square"; call.frequency.setValueAtTime(880, t + at); call.frequency.exponentialRampToValueAtTime(440, t + at + 0.08);
+            cg.gain.setValueAtTime(0.0001, t + at); cg.gain.exponentialRampToValueAtTime(0.1 * 0.8 ** k, t + at + 0.004); cg.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.09);
+            call.connect(cg); send(o, cg, 0.35); call.start(t + at); call.stop(t + at + 0.1);
+          }
+          break;
+        }
+        case "fork": {
+          // A Hard Fork: a ripping crack as the chain splits, two tones gliding apart.
+          noiseBand(o, t, 0.25, "highpass", 1500, 6000, 0.8, 0.14, 0.004, 0.3); thud(o, t, 60, 0.3);
+          for (const [to] of [[1400], [300]] as const) { const tone = ctx.createOscillator(), tg = ctx.createGain(); tone.type = "triangle"; tone.frequency.setValueAtTime(650, t + 0.05); tone.frequency.exponentialRampToValueAtTime(to, t + 0.7);
+            tg.gain.setValueAtTime(0.0001, t + 0.05); tg.gain.exponentialRampToValueAtTime(0.06, t + 0.08); tg.gain.exponentialRampToValueAtTime(0.0001, t + 0.75); tone.connect(tg); send(o, tg, 0.4); tone.start(t + 0.05); tone.stop(t + 0.8); }
+          break;
+        }
+        case "gasspike": {
+          // A Gas Spike: pressure hissing and rising into a whoosh.
+          noiseBand(o, t, 1.1, "bandpass", 500, 5000, 2, 0.24, 0.6, 0.3);
+          break;
+        }
+      }
       break;
     }
     case "strike": {
@@ -732,7 +819,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 1, caw: 1.1, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.7, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, lock: 1.4, coins: 1.2, trophy: 2, vault: 2.6, tick: 0.08, drumroll: 4.8, land: 1.6, tumbleweed: 3.4, sparks: 1.4, fireworks: 2.2, fanfare: 3, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, down: 1.6, smash: 1.4, strike: 1.3, twist: 3, wipe: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, blast: 1.8, lock: 1.4, coins: 1.2, trophy: 2, vault: 2.6, tick: 0.08, drumroll: 4.8, land: 1.6, tumbleweed: 3.4, sparks: 1.4, fireworks: 2.2, fanfare: 3, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, down: 1.6, smash: 1.4, strike: 1.3, twist: 3, wipe: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {
@@ -837,10 +924,11 @@ function scheduleRideBar(o: Out, t: number, bar: number, pass: number) {
   // Every other pass, a trumpet line over it.
   if (pass % 2 === 1) for (const [atBar, at, note, beats] of RIDE_RIFF) if (atBar === bar) trumpet(o, t + at * beat, hz(note), beats * beat * 0.9, 0.05);
 }
-/** "The Standoff", while an outlaw is near: in the same style but ominous, at 92 beats a minute (quicker than Lonesome Trail, slower
- * than the gallop), over Am - Bb - Am - E, the half-step up to Bb the menace of a standoff. A trembling tremolo guitar, a low
- * heartbeat, a dark drone; a low, uneasy whistle every other pass and a bell tolling at the end of each. */
-const STANDOFF_BEAT = 60 / 92, STANDOFF_BAR = STANDOFF_BEAT * 4;
+/** "The Standoff", while an outlaw is near: ominous and panicky, a toreador's standoff at 112 beats a minute over Am - Bb - Am - E
+ * (the half-step up to Bb the menace, Phrygian and Spanish). A trembling tremolo guitar, a racing heartbeat, a dark drone, castanets
+ * rattling into every beat and flamenco strums on 1 and 3; a toreador's trumpet call every other pass, the low whistle now and then,
+ * and a bell tolling at the end of each. */
+const STANDOFF_BEAT = 60 / 112, STANDOFF_BAR = STANDOFF_BEAT * 4;
 const STANDOFF_CHORDS: readonly (readonly [number, readonly number[]])[] = [
   [-24, [-12, -9, -5, 0]],  // Am: A2 | A3 C4 E4 A4
   [-23, [-11, -7, -4, 1]],  // Bb: Bb2 | Bb3 D4 F4 Bb4
@@ -849,6 +937,13 @@ const STANDOFF_CHORDS: readonly (readonly [number, readonly number[]])[] = [
 ];
 /** The whistle over a standoff pass: [bar, beat, note, beats long], leaning on the half-step. */
 const STANDOFF_WHISTLE: readonly (readonly [number, number, number, number])[] = [[0, 0, 7, 3.5], [1, 0, 8, 3.5], [2, 0, 7, 2], [2, 2, 3, 1.5], [3, 0, -1, 3.5]];
+/** The toreador's trumpet call over a standoff pass: [bar, beat, note, beats long], a bullfight fanfare in the Phrygian mode. */
+const STANDOFF_TRUMPET: readonly (readonly [number, number, number, number])[] = [
+  [0, 0, 7, 0.75], [0, 0.75, 7, 0.25], [0, 1, 12, 1], [0, 2, 10, 0.5], [0, 2.5, 8, 0.5], [0, 3, 7, 1],
+  [1, 0, 8, 0.75], [1, 0.75, 5, 0.25], [1, 1, 8, 1], [1, 2, 13, 2],
+  [2, 0, 7, 0.75], [2, 0.75, 3, 0.25], [2, 1, 7, 1], [2, 2, 5, 0.5], [2, 2.5, 3, 0.5], [2, 3, 2, 1],
+  [3, 0, -1, 1.5], [3, 1.5, 2, 0.5], [3, 2, 7, 2],
+];
 function scheduleStandoffBar(o: Out, t: number, bar: number, pass: number) {
   const { ctx } = o, [root, tones] = STANDOFF_CHORDS[bar], beat = STANDOFF_BEAT;
   // The dark drone on the root, and the bass struck at the top of the bar.
@@ -862,7 +957,16 @@ function scheduleStandoffBar(o: Out, t: number, bar: number, pass: number) {
   // The tremolo: the chord's tones picked fast and soft, sixteenths, rising and falling through the chord.
   const order = [1, 2, 3, 2];
   for (let k = 0; k < 16; k++) pluck(o, t + k * beat / 4, hz(tones[order[k % 4]]), 0.035 + (k % 4 === 0 ? 0.015 : 0), 0.35, 0.99, 0.5);
-  if (pass % 2 === 1) for (const [atBar, at, note, beats] of STANDOFF_WHISTLE) if (atBar === bar) whistle(o, t + at * beat, hz(note), hz(note), beats * beat * 0.95, 0.045);
+  // The toreador: castanets rattling "tr-r-RA" into every beat, and flamenco strums rolled hard on beats 1 and 3.
+  for (let k = 0; k < 4; k++) {
+    for (const [sub, level] of [[-0.25, 0.018], [-0.17, 0.02], [-0.09, 0.024], [0, 0.04]] as const) if (k + sub >= 0) {
+      noiseBand(o, t + (k + sub) * beat, 0.018, "bandpass", 3200, 2800, 3, level, 0.001, 0.1); woodBlock(o, t + (k + sub) * beat, 1900, level * 0.8);
+    }
+  }
+  for (const at of [0, 2]) { strum(o, t + at * beat, [root + 12, ...tones], 0.06, 0.011, 0.5); strum(o, t + (at + 0.5) * beat, [...tones].reverse(), 0.035, 0.009, 0.35); }
+  // Every other pass the toreador's trumpet calls out; on the others the low, uneasy whistle.
+  if (pass % 2 === 1) for (const [atBar, at, note, beats] of STANDOFF_TRUMPET) { if (atBar === bar) { trumpet(o, t + at * beat, hz(note), beats * beat * 0.9, 0.05); trumpet(o, t + at * beat, hz(note - 12), beats * beat * 0.9, 0.025); } }
+  else if (pass % 4 === 2) for (const [atBar, at, note, beats] of STANDOFF_WHISTLE) if (atBar === bar) whistle(o, t + at * beat, hz(note), hz(note), beats * beat * 0.95, 0.045);
   if (bar === 3) for (const [f, level, ring] of [[hz(-24), 0.035, 3.5], [hz(-24) * 2.4, 0.018, 2.5]] as const) {
     const bell = ctx.createOscillator(), bg = ctx.createGain(), at = t + 2 * beat;
     bell.type = "sine"; bell.frequency.value = f;
@@ -985,7 +1089,7 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
     },
     play(id, options) {
       if (disposed || silent || !ctx || !out || ctx.state !== "running" || document.hidden) return false;
-      cue(out, id, ctx.currentTime + 0.01, options);
+      cue(out, id, ctx.currentTime + 0.01 + (options?.delay ?? 0), options);
       return true;
     },
     setMuted(value) { silent = value; apply(); },

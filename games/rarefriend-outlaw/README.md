@@ -1049,8 +1049,13 @@ Spaghetti-Western sound effects, all synthesized in code with the Web Audio API 
 plucked, twangy guitar string (Karplus-Strong), a whistle with vibrato, a whip crack, wood-block hoofbeats, a mariachi trumpet and
 an anvil thud and a hollow bump, through a short spring-reverb echo. The first cues: `laser` (on every shot: a low energy blast with the gun's recoil, a kick and a mechanical clack, and a canyon echo),
 `hoof` (a galloping stride of four uneven hoofbeats, ba-da-da-DUM, every 520 ms while riding, never quite the same twice), `flip` (a computer bleep per uncovered tile, a plain square wave switched on and off like an old terminal's beep; its note is your chain's size on an A-minor pentatonic scale, so it climbs only as the chain grows and repeats the last note otherwise), `smash` (hitting a
-defender: demolishing brickwork, a crack, crumbling stone and a thud, and a bigger collapse with rubble when it breaks; its instant
-strike-back needs no sound of its own), `strike` (Integrity lost to a bomb, a bite or the like: an anvil thud under a low twang), `step` (a soft, light thud of a footstep, every 330 ms while walking on foot), `bump` (walking into an outlaw, who robs you: a body thump and a hollow bonk), `down` (an outlaw shot down, as his loot window opens: a small victory, a trumpet ta-da over a strummed chord; the
+defender, a sound for each: the Firewall is demolished brickwork, a crack, crumbling stone and a thud, and a bigger collapse with
+rubble when it breaks; the Tamper Alarm a clanging bell that rattles when broken; the Validator an electric buzz and zap that
+powers down with a whine; the Whale a splash and a groan; the Secure Chip a crackle and an arc that shatters into shards; its instant
+strike-back needs no sound of its own), `blast` (an attacker going off, a sound for each: the Difficulty Bomb a deep boom with debris
+raining down; the Reentrancy Attack a zap that calls itself back, seven echoing zaps that speed up and fade like a loop draining
+the wallet; the Hard Fork a ripping crack with two tones splitting apart; the Gas Spike a rising hiss. An uncovered attacker stays
+on the board in full colour for a quarter of a second before it blows, and Integrity drops with the blast, not before), `strike` (Integrity lost to a bomb, a bite or the like: an anvil thud under a low twang), `step` (a soft, light thud of a footstep, every 330 ms while walking on foot), `bump` (walking into an outlaw, who robs you: a body thump and a hollow bonk), `down` (an outlaw shot down, as his loot window opens: a small victory, a trumpet ta-da over a strummed chord; the
 music's Standoff alone marks an outlaw coming near), `twist` (a twist striking: an ominous discovery, ta-da-daaa: two low brass stabs with timpani, then a dark held chord with
 tremolo strings and a cymbal swell), `wipe` (a wiped wallet: whip crack, falling whistle, trembling chord) and `win` (a cracked wallet: a mariachi
 flourish). Sound starts after the first click, tap or key press (browsers require it) and stops while the tab is hidden; Settings
@@ -1078,8 +1083,10 @@ about a third of a second and the new track starts at once, from the top of its 
 **"Trail Gallop"** while you ride a horse (`scheduleRideBar`): the same cadence at 112 beats a minute, a picked bass on the beat,
 short damped strums on the off-beats, a galloping shaker (ta-ta-TA on every beat) under the hoofbeats and, every other pass, a
 trumpet line; and **"The Standoff"** while a living outlaw is near (within 600 world units, back beyond 820; it wins over the
-gallop), ominous at 92 beats a minute over Am - Bb - Am - E (the half-step up to Bb the menace), with a trembling tremolo guitar,
-a low heartbeat, a dark drone, a low, uneasy whistle every other pass and a bell tolling at the end of each. The hacking game has its own track, **"Trace"** (`scheduleHackBar`):
+gallop), a panicky toreador piece at 112 beats a minute over Am - Bb - Am - E (the half-step up to Bb the menace, Phrygian like a
+paso doble), with rattling castanets (tr-r-RA on every beat), flamenco strums on beats one and three, a Spanish trumpet call every
+other pass and a low, uneasy whistle every fourth pass in between, over the trembling tremolo guitar, low heartbeat, dark drone and a bell tolling at
+the end of each pass. The hacking game has its own track, **"Trace"** (`scheduleHackBar`):
 digital and slightly anxious at 104 beats a minute over Am - F - Dm - E, a pulse-wave arpeggio streaming through each chord in
 sixteenths, a sub-bass pulsing on the eighths, a soft tick like the trace counting, a faintly detuned pad drifting uneasily, little
 glitch blips at random and, every fourth bar, a rising filter sweep; a little under the country tracks, below the board's own cues. Every string is
