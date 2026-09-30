@@ -4227,9 +4227,10 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   }, []);
   useEffect(() => { if (paused || menu !== null || wallet || prompt) stop(); }, [paused, menu, wallet, prompt]);
   useEffect(() => { if (equipped && (count(equipped) === 0n || !holdable(equipped))) setEquipped(null); });
+  // A toast stays up long enough to read: 2.6 seconds, or 45 ms a character for longer ones (the starter horse's is about 12 s).
   useEffect(() => {
     if (!note) return;
-    const timer = setTimeout(() => setNote(""), 2600);
+    const timer = setTimeout(() => setNote(""), Math.max(2600, note.length * 45));
     return () => clearTimeout(timer);
   }, [note]);
 
