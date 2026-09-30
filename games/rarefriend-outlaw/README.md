@@ -741,7 +741,10 @@ for the last ten), and a parked one with its time running shows its seconds over
   whether ridden and when it expires) for checks.
 - **Held items follow your facing:** the equipped item is drawn beside the
   Friend facing left/right, turned upward and *behind* the Friend facing up,
-  and turned downward in front facing down.
+  and turned downward in front facing down. The Laser Gun is drawn as clean
+  shapes with a thin black outline, like the Butterfly Net: a rounded grey
+  body, a raked grip, a red sight and stripe, and a red emitter with a
+  glowing lens at the muzzle.
 - **Capture:** for now only butterflies are catchable, and only with the
   **Butterfly Net**, which is not sold and not owned at the start: any outlaw
   drops one 5% of the time when neutralized (`NET_DROP_CHANCE`); since any outlaw can drop it, it is listed as **Uncommon**,
@@ -1051,7 +1054,7 @@ an anvil thud and a hollow bump, through a short spring-reverb echo. The first c
 `hoof` (a galloping stride of four uneven hoofbeats, ba-da-da-DUM, every 520 ms while riding, never quite the same twice), `flip` (a computer bleep per uncovered tile, a plain square wave switched on and off like an old terminal's beep; its note is your chain's size on an A-minor pentatonic scale, so it climbs only as the chain grows and repeats the last note otherwise), `smash` (hitting a
 defender, a sound for each: the Firewall is demolished brickwork, a crack, crumbling stone and a thud, and a bigger collapse with
 rubble when it breaks; the Tamper Alarm a clanging bell that rattles when broken; the Validator an electric buzz and zap that
-powers down with a whine; the Whale a splash and a groan; the Secure Chip a crackle and an arc that shatters into shards; its instant
+powers down with a whine; the Whale a splash and a humpback's call through the water, a hollow whoop gliding up and sagging back (broken, a long song that climbs and falls away into the deep); the Secure Chip a crackle and an arc that shatters into shards; its instant
 strike-back needs no sound of its own), `blast` (an attacker going off, a sound for each: the Difficulty Bomb a deep boom with debris
 raining down; the Reentrancy Attack a zap that calls itself back, seven echoing zaps that speed up and fade like a loop draining
 the wallet; the Hard Fork a ripping crack with two tones splitting apart; the Gas Spike a rising hiss. An uncovered attacker stays

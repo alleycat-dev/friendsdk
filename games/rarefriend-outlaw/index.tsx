@@ -2783,11 +2783,26 @@ function drawCryoTube(ctx: CanvasRenderingContext2D, x: number, y: number, sprit
   ctx.restore();
 }
 
-/** The Laser Gun in local pixel units: grey body and grip, red emitter and sight, barrel pointing along +x with its tip at (20, 6.5). */
+/** The Laser Gun in local pixel units, drawn as clean shapes like the other held items: a rounded grey body with a raked grip, a
+ * trigger guard, a red sight and energy stripe, and a red emitter whose glowing lens is the barrel tip at (20, 6.5). */
 function drawLaserPistol(ctx: CanvasRenderingContext2D) {
-  const px = (x: number, y: number, w: number, h: number) => ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "#5a5a5a"; px(0, 4, 16, 5); px(2, 9, 6, 7);
-  ctx.fillStyle = "#e0301e"; px(16, 3, 4, 7); px(8, 2, 6, 2);
+  const shape = (path: () => void, fill: string) => { ctx.beginPath(); path(); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.stroke(); };
+  ctx.save(); ctx.lineJoin = "round"; ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5;
+  // The grip, raked back, with darker grooves; the trigger guard in front of it.
+  shape(() => { ctx.moveTo(2.5, 8); ctx.lineTo(8, 8); ctx.lineTo(6.5, 16); ctx.quadraticCurveTo(6, 17, 4.5, 17); ctx.lineTo(1.5, 17); ctx.quadraticCurveTo(0.5, 17, 0.8, 16); }, "#4a4f57");
+  ctx.beginPath(); ctx.moveTo(8, 9); ctx.quadraticCurveTo(8.5, 13, 12, 12); ctx.lineTo(12, 9.5); ctx.stroke();
+  // The body: a rounded slide, lighter along the top.
+  shape(() => { ctx.moveTo(1, 3.5); ctx.lineTo(14, 3.5); ctx.quadraticCurveTo(16, 3.5, 16, 5.5); ctx.lineTo(16, 8); ctx.quadraticCurveTo(16, 9.5, 14.5, 9.5); ctx.lineTo(1.5, 9.5); ctx.quadraticCurveTo(0, 9.5, 0, 8); ctx.lineTo(0, 5); ctx.quadraticCurveTo(0, 3.5, 1, 3.5); }, "#8a9099");
+  ctx.fillStyle = "#c3c8cf"; ctx.fillRect(1.5, 4.5, 12, 1.2);
+  ctx.fillStyle = "#e0301e"; ctx.fillRect(2.5, 7, 9, 1.1);
+  ctx.strokeStyle = "#3a3e45"; ctx.lineWidth = 0.7; for (const gx of [3, 4.8]) { ctx.beginPath(); ctx.moveTo(gx + 0.6, 11); ctx.lineTo(gx, 15); ctx.stroke(); }
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5;
+  // The sight on top, and the emitter: a red collar ending in a glowing lens.
+  shape(() => { ctx.moveTo(8.5, 3.5); ctx.lineTo(9.5, 1.5); ctx.lineTo(13, 1.5); ctx.lineTo(13.5, 3.5); }, "#e0301e");
+  shape(() => { ctx.moveTo(15.5, 3); ctx.lineTo(19, 4); ctx.lineTo(19, 9); ctx.lineTo(15.5, 10); }, "#e0301e");
+  ctx.fillStyle = "rgba(255, 90, 70, 0.45)"; ctx.beginPath(); ctx.arc(20, 6.5, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#ffd0da"; ctx.beginPath(); ctx.ellipse(19.5, 6.5, 1.2, 2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
 }
 const PISTOL_GRIP: Point = { x: 5, y: 12 }, PISTOL_TIP: Point = { x: 20, y: 6.5 };
 

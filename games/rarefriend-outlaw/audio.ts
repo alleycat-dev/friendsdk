@@ -258,7 +258,7 @@ function send(o: Out, node: AudioNode, amount: number) {
 export type CueOptions = { step?: number; gain?: number; pan?: number; heavy?: boolean; species?: string; delay?: number };
 /** Levels that bring the hacking game's hits and blasts up to the Firewall's, measured by their loudest tenth of a second. */
 const SPECIES_LEVEL: Partial<Record<SoundId, Record<string, number>>> = {
-  smash: { alarm: 3, validator: 2.6, whale: 2.8, chip: 4.5 },
+  smash: { alarm: 3, validator: 2.6, whale: 0.8, chip: 4.5 },
   blast: { reentrancy: 4.5, gasspike: 4.5 },
 };
 function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
@@ -668,10 +668,24 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
           break;
         }
         case "whale": {
-          // The Whale: a splash and a low groan; broken, a big splash and a long, falling moan.
-          noiseBand(o, t, heavy ? 0.9 : 0.45, "lowpass", 2200, 400, 0.8, heavy ? 0.14 : 0.15, 0.01, 0.3);
-          voice(o, t + 0.05, { seconds: heavy ? 1.4 : 0.6, gain: heavy ? 0.19 : 0.22, wave: "sine", breath: 0.1, attack: 0.08, release: 0.3, pitch: heavy ? [[0, 190], [0.4, 150], [1.4, 60]] : [[0, 140], [0.6, 110]],
-            formants: [{ f: [[0, 300], [1, 250]], q: 2, gain: 1 }, { f: [[0, 700], [1, 600]], q: 3, gain: 0.4 }], reverb: 0.6 });
+          // The Whale: a humpback's call heard through the water, a slow, hollow whoop that glides up and sags back; broken, a big
+          // splash and a long song that climbs and falls away into the deep. A pure tone with a soft octave above it, a slow vibrato,
+          // muffled by a low-pass and left ringing in the reverb.
+          noiseBand(o, t, heavy ? 0.9 : 0.35, "lowpass", 2200, 400, 0.8, heavy ? 0.14 : 0.08, 0.01, 0.3);
+          const at = t + (heavy ? 0.12 : 0.03), len = heavy ? 1.25 : 0.6;
+          const glide: readonly (readonly [number, number])[] = heavy ? [[0, 120], [0.35, 420], [0.55, 380], [1.25, 80]] : [[0, 150], [0.35, 360], [0.6, 300]];
+          const lp = ctx.createBiquadFilter(), g = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
+          lp.type = "lowpass"; lp.frequency.value = 1100; lp.Q.value = 2;
+          lfo.frequency.value = 4.5; depth.gain.value = 6; lfo.connect(depth);
+          for (const [mult, wave, level] of [[1, "sine", 1], [2, "triangle", 0.3]] as const) {
+            const osc = ctx.createOscillator(), og = ctx.createGain(); osc.type = wave; og.gain.value = level;
+            osc.frequency.setValueAtTime(glide[0][1] * mult, at); for (const [when, hz] of glide.slice(1)) osc.frequency.exponentialRampToValueAtTime(hz * mult, at + when);
+            depth.connect(osc.frequency); osc.connect(og).connect(lp); osc.start(at); osc.stop(at + len + 0.05);
+          }
+          const peak = heavy ? 0.22 : 0.2;
+          g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(peak, at + 0.12);
+          g.gain.setValueAtTime(peak, at + len * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+          lp.connect(g); send(o, g, 0.7); lfo.start(at); lfo.stop(at + len + 0.05);
           break;
         }
         case "chip": {
