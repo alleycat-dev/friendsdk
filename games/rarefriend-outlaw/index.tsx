@@ -5103,9 +5103,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     const finished = !!wallet && wallet.state !== "probing" && wallet.state.phase !== "open";
     // A finished hack already sent you home (walletAct), while the board still covered the country.
     // A finished run points to the Licence Settlement rather than just saying where you are.
-    setWallet(null); setNote(!finished ? "" : settling ? "Run over: settle your licence at the Data Center's Licence Settlement terminal (its top-right room). The friendly locals point the way." : "Back at the Centralised Exchange."); setHaul(null); setRewardsOpen(false);
-    // A run that just ended shows its payout once the board is closed.
-    if ((settling || runEnd) && !run) open("licence");
+    setWallet(null); setNote(!finished ? "" : settling ? "There are no more outlaws: the country is clean. Go to the Licence Settlement in the Data Center (its top-right room) to settle your licence. The friendly locals point the way." : "Back at the Centralised Exchange."); setHaul(null); setRewardsOpen(false);
+    // A run that ended is settled at the Data Center's terminal (which reveals the payout); the note above says so, no screen opens.
   }
 
   /** Buy a Bounty Hunter licence (one SDK consumable, the one confirmation) unless you already hold an unused one, and start the run
@@ -5490,7 +5489,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           <button type="button" disabled={paused} onClick={() => open("settings")}>Settings</button>
         </div>
         {!status && !wallet && <div className="outlaw-guide">
-          <p>{inside ? <>Inside {INTERIORS[inside].label} {"·"} the door at the bottom leads back out {"·"} {nearPoster >= 0 && <>V views the poster {"·"} </>}</> : <>WASD / arrows or tap to walk {"·"} {riding && <>R dismounts {"·"} </>}M map {"·"} </>}I inventory {"·"} Q switches {"·"} Space uses it{wanted ? <> {"·"} Wanted: {wanted.name}</> : status ? null : <> {"·"} The country is clear</>}</p>
+          <p>{inside ? <>Inside {INTERIORS[inside].label} {"·"} the door at the bottom leads back out {"·"} {nearPoster >= 0 && <>V views the poster {"·"} </>}</> : <>WASD / arrows or tap to walk {"·"} {riding && <>R dismounts {"·"} </>}M map {"·"} </>}I inventory {"·"} Q switches {"·"} Space uses it{wanted ? <> {"·"} Wanted: {wanted.name}</> : status ? null : settling ? <> {"·"} No more outlaws: settle your licence at the Data Center</> : <> {"·"} The country is clear</>}</p>
         </div>}
         {note && !wallet && <p className={`outlaw-toast outlaw-toast-${noteTone}`} role="status">{note}</p>}
       </div>

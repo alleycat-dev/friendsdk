@@ -915,7 +915,9 @@ holds exactly 20 RF, so a 100 RF licence could not be bought in preview). A lice
 - **During the run.** Shots, reloads (1 OP a shot at the Charging Station, up to 50), horses and wallets are all
   in-game, with no dialogs. Cracked wallets pay OP and loot, never RF.
 - **End.** The run ends when The Liquidator's wallet is settled (cracked or wiped), or when you retire, at any
-  time, from the licence office or the Data Center's terminal, settling with the seed words you hold so far. Wallets
+  time, from the licence office or the Data Center's terminal, settling with the seed words you hold so far. When The Liquidator's
+  board closes, no screen opens: a message says there are no more outlaws and sends you to the Licence Settlement in the Data
+  Center, and the bar at the bottom keeps saying so until you have settled. Wallets
   wiped by their kill switches are counted but never end the run. Then the licence is used, the
   run's one other confirmation ("Use bounty hunter licence"), and its play is settled, revealing its **RF
   payout**, kept in your inventory to redeem (cancel that confirmation and the office offers "Reveal the payout"):
