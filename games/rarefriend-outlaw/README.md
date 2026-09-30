@@ -1039,6 +1039,13 @@ a flock of hens or a pond of frogs sounds like one. Each is quieter with distanc
 most five calls start in any second (`MAX_CALLS_PER_SECOND`), so a crowd stays a chorus. Ongoing sounds (`ANIMAL_LOOPS`) add
 voices with numbers, up to three: more moving snakes, more butterflies, and one more hum for every five bees.
 
+**Music:** "Lonesome Trail", a soft spaghetti-Western ambience out in the country (`scheduleMusicBar` in `audio.ts`): a slow,
+reverb-soaked nylon-guitar arpeggio over the classic cadence Am - G - F - E at 66 beats a minute (one of four sparse picking
+patterns per pass, slightly humanised), a soft drone on each root and a faint pad; every third pass a distant whistle sings a
+phrase over it, and every fourth a bell tolls far off. It sits well under the animals and cues (`MUSIC_LEVEL`) on its own bus, is
+laid down a second ahead by a look-ahead scheduler, rests (fading out) while a hardware wallet is being hacked, and fades back in
+afterwards. Settings has **Music on**, separate from **Sound on**; the volume slider sets both.
+
 Listen without the game: build the practice pages, then open `practice/dist/sounds.html` (buttons for every cue, WAV downloads),
 or render them all to `practice/dist/wav/` with `node games/rarefriend-outlaw/tools/sounds.mjs`, which also prints each cue's
 length and peak level.

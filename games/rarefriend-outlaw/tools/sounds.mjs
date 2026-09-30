@@ -39,6 +39,11 @@ const cues = await page.evaluate(async () => {
     for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
     rendered.push({ id: `sequence-${id}`, seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) });
   }
+  // A minute of the country's music ("Lonesome Trail", four passes).
+  { const buffer = await window.outlawSounds.renderMusic(4);
+    let peak = 0, sum = 0;
+    for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
+    rendered.push({ id: "music-lonesome-trail", seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) }); }
   return rendered;
 });
 await browser.close();

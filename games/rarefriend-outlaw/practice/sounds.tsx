@@ -1,11 +1,12 @@
 // The sound preview page: every cue of audio.ts as a button (and a WAV download), to judge the sounds before they go into the game.
 // Build: node games/rarefriend-outlaw/practice/build.mjs, then open practice/dist/sounds.html.
 import { createRoot } from "react-dom/client";
-import { useRef, useState } from "react";
-import { createOutlawAudio, renderCue, renderSequence, wavBytes, SOUND_CUES, SOUND_IDS, type SoundId } from "../audio";
+import { useEffect, useRef, useState } from "react";
+import { createOutlawAudio, renderCue, renderMusic, renderSequence, wavBytes, SOUND_CUES, SOUND_IDS, type SoundId } from "../audio";
 
 function SoundPreview() {
-  const audio = useRef(createOutlawAudio({ volume: 0.8 }));
+  const audio = useRef(createOutlawAudio({ volume: 0.8 })), [music, setMusic] = useState(false);
+  useEffect(() => { audio.current.setMusic(music); }, [music]);
   const [volume, setVolume] = useState(0.8), [muted, setMuted] = useState(false), [step, setStep] = useState(0), [note, setNote] = useState("");
   const play = async (id: SoundId, options?: { step?: number }) => {
     if (!(await audio.current.unlock())) { setNote("This browser cannot play Web Audio."); return; }
@@ -27,6 +28,8 @@ function SoundPreview() {
       <td>{SOUND_CUES[id]}</td>
       <td><button type="button" className="small" onClick={() => void download(id)}>WAV</button></td>
     </tr>)}</tbody></table>
+    <h2>Music</h2>
+    <p><button type="button" onClick={async () => { if (await audio.current.unlock()) setMusic(value => !value); }}>{music ? "Stop" : "Play"} "Lonesome Trail"</button> The country's ambience, looping (a whistle every third pass, a bell every fourth).</p>
     <h2>In a sequence</h2>
     <p>
       <button type="button" onClick={() => { void play("flip", { step }); setStep(value => value + 1); }}>Flip, chain grows (note {Math.min(step, 15) + 1} of 16)</button>{" "}
@@ -40,5 +43,5 @@ function SoundPreview() {
   </main>;
 }
 // For tools that render the cues to WAV files headlessly (no speakers needed).
-(window as unknown as { outlawSounds: unknown }).outlawSounds = { renderCue, renderSequence, wavBytes, SOUND_IDS };
+(window as unknown as { outlawSounds: unknown }).outlawSounds = { renderCue, renderMusic, renderSequence, wavBytes, SOUND_IDS };
 createRoot(document.getElementById("root")!).render(<SoundPreview />);

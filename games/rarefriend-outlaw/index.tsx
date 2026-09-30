@@ -3885,8 +3885,10 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   // Sound (audio.ts): one player for the session, switched on by the first click, tap or key; Settings mutes it or sets its volume.
   const audio = useRef<ReturnType<typeof createOutlawAudio> | null>(null);
   if (!audio.current) audio.current = createOutlawAudio();
-  const [soundOn, setSoundOn] = useState(true), [soundVolume, setSoundVolume] = useState(0.7);
-  useEffect(() => { audio.current?.setMuted(!soundOn); audio.current?.setVolume(soundVolume); }, [soundOn, soundVolume]);
+  const [soundOn, setSoundOn] = useState(true), [soundVolume, setSoundVolume] = useState(0.7), [musicOn, setMusicOn] = useState(true);
+  useEffect(() => { audio.current?.setMuted(!soundOn); audio.current?.setVolume(soundVolume); audio.current?.setMusic(musicOn); }, [soundOn, soundVolume, musicOn]);
+  // The country's music rests while a hardware wallet is being hacked, and fades back in afterwards.
+  useEffect(() => { audio.current?.setMusicAllowed(!wallet); }, [wallet]);
   useEffect(() => () => audio.current?.dispose(), []);
   // The hacking board's cues come from comparing each new board state with the last: a tile uncovered plucks the note of the chain's
   // size, hitting a defender smashes brick (its instant strike-back included), other lost Integrity is a thud, a new twist event
@@ -5691,10 +5693,12 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             asks for reduced motion. The game plays the same either way.</p>
           <h3>Sound</h3>
           <label><input type="checkbox" checked={soundOn} onChange={event => setSoundOn(event.target.checked)} /> Sound on</label>
+          <label><input type="checkbox" checked={musicOn} onChange={event => setMusicOn(event.target.checked)} /> Music on</label>
           <label className="outlaw-volume">Volume <input type="range" min={0} max={1} step={0.05} value={soundVolume} disabled={!soundOn}
             onChange={event => setSoundVolume(Number(event.target.value))} aria-label="Sound volume" /></label>
-          <p>Spaghetti-Western sound effects made in code. Sound starts after your first click, tap or key press, and stops while the
-            game's tab is hidden.</p>
+          <p>Spaghetti-Western sound effects and a soft Western ambience out in the country ("Lonesome Trail", quiet enough to hear the
+            animals; it rests during hacks), all made in code. Sound and music start after your first click, tap or key press, and stop
+            while the game's tab is hidden. The volume sets both.</p>
           <h3>Credits</h3>
           <p><strong>Alley Cat</strong> · Lead Developer</p>
           <p>Built with Claude Code (Anthropic)</p>

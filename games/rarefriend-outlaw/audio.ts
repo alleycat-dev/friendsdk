@@ -549,6 +549,63 @@ function outputChain(ctx: BaseAudioContext, destination: AudioNode, master: Gain
 // The player
 // ---------------------------------------------------------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------------------------------------------------------
+// Music: "Lonesome Trail", the country's ambience
+// ---------------------------------------------------------------------------------------------------------------------------
+
+/** 66 beats a minute, four to a bar; the Western cadence Am - G - F - E, one chord a bar, as [root, chord tones] in semitones from A4. */
+const MUSIC_BEAT = 60 / 66, MUSIC_BAR = MUSIC_BEAT * 4;
+const MUSIC_CHORDS: readonly (readonly [number, readonly number[]])[] = [
+  [-24, [-12, -5, 0, 3]],   // Am: A2 | A3 E4 A4 C5
+  [-26, [-14, -7, -2, 2]],  // G:  G2 | G3 D4 G4 B4
+  [-28, [-16, -9, -4, 0]],  // F:  F2 | F3 C4 F4 A4
+  [-29, [-17, -8, -5, -1]], // E:  E2 | E3 G#3 B3 E4 (the major chord that pulls back home)
+];
+/** Arpeggio patterns: [beat, which chord tone], sparse so the country stays audible; one is picked for each pass. */
+const MUSIC_PATTERNS: readonly (readonly [number, number][])[] = [
+  [[0, 0], [1, 1], [1.5, 2], [2, 3], [3, 2]],
+  [[0, 0], [0.5, 1], [1.5, 2], [2.5, 1], [3, 3]],
+  [[0, 0], [1, 2], [2, 1], [2.5, 3], [3.5, 2]],
+  [[0, 0], [1.5, 1], [2, 2], [3, 3]],
+];
+/** Whistled phrases over a pass, now and then: [bar, beat, from, to, beats long] (semitones from A4). */
+const MUSIC_WHISTLES: readonly (readonly [number, number, number, number, number][])[] = [
+  [[0, 1, 7, 7, 2], [0, 3, 5, 3, 1.5], [1, 1, 2, 2, 2.5], [2, 1, 0, 0, 1.5], [2, 3, 3, 2, 1], [3, 0, -1, -1, 3]],
+  [[0, 2, 12, 12, 1.5], [1, 0, 10, 7, 2], [2, 0, 8, 5, 2], [3, 0, 7, 4, 3.5]],
+];
+/** Schedule one bar of the ambience at time `t`: `bar` 0-3 in the cadence, `pass` counts the loops. */
+function scheduleMusicBar(o: Out, t: number, bar: number, pass: number, pattern: number) {
+  const { ctx } = o, [root, tones] = MUSIC_CHORDS[bar];
+  // A soft drone on the root, a faint pad of the chord, and the guitar picking through it.
+  const drone = ctx.createOscillator(), dg = ctx.createGain();
+  drone.type = "sine"; drone.frequency.value = hz(root);
+  dg.gain.setValueAtTime(0.0001, t); dg.gain.exponentialRampToValueAtTime(0.06, t + 0.6); dg.gain.setValueAtTime(0.06, t + MUSIC_BAR - 0.5); dg.gain.exponentialRampToValueAtTime(0.0001, t + MUSIC_BAR + 0.4);
+  drone.connect(dg); send(o, dg, 0.3); drone.start(t); drone.stop(t + MUSIC_BAR + 0.5);
+  for (const tone of tones.slice(0, 3)) {
+    const pad = ctx.createOscillator(), lp = ctx.createBiquadFilter(), pg = ctx.createGain();
+    pad.type = "sawtooth"; pad.frequency.value = hz(tone); pad.detune.value = (Math.random() - 0.5) * 12;
+    lp.type = "lowpass"; lp.frequency.value = 700;
+    pg.gain.setValueAtTime(0.0001, t); pg.gain.exponentialRampToValueAtTime(0.012, t + 1.2); pg.gain.setValueAtTime(0.012, t + MUSIC_BAR - 0.8); pg.gain.exponentialRampToValueAtTime(0.0001, t + MUSIC_BAR + 0.6);
+    pad.connect(lp).connect(pg); send(o, pg, 0.6); pad.start(t); pad.stop(t + MUSIC_BAR + 0.7);
+  }
+  pluck(o, t, hz(root + 12), 0.16, 3, 0.997, 0.7);
+  for (const [beat, which] of MUSIC_PATTERNS[pattern]) {
+    const human = (Math.random() - 0.5) * 0.02;
+    pluck(o, t + beat * MUSIC_BEAT + human, hz(tones[which]), 0.09 + Math.random() * 0.03, 2.4, 0.997, 0.7);
+  }
+  // Every third pass a distant whistle sings a phrase over the cadence; every fourth, a bell tolls far off at the top of it.
+  if (pass % 3 === 2) for (const [atBar, beat, from, to, beats] of MUSIC_WHISTLES[Math.floor(pass / 3) % MUSIC_WHISTLES.length])
+    if (atBar === bar) whistle(o, t + beat * MUSIC_BEAT, hz(from), hz(to), beats * MUSIC_BEAT, 0.05);
+  if (pass % 4 === 3 && bar === 0) for (const [f, level, ring] of [[hz(-24), 0.04, 3.5], [hz(-24) * 2.4, 0.02, 2.5]] as const) {
+    const bell = ctx.createOscillator(), bg = ctx.createGain();
+    bell.type = "sine"; bell.frequency.value = f;
+    bg.gain.setValueAtTime(0.0001, t); bg.gain.exponentialRampToValueAtTime(level, t + 0.02); bg.gain.exponentialRampToValueAtTime(0.0001, t + ring);
+    bell.connect(bg); send(o, bg, 0.9); bell.start(t); bell.stop(t + ring + 0.1);
+  }
+}
+/** The music's level against the sound effects: well under the animals and cues. */
+const MUSIC_LEVEL = 0.35;
+
 export type OutlawAudio = {
   /** Create or resume the AudioContext; call from a click, tap or key press. Resolves false where audio is unavailable. */
   unlock(): Promise<boolean>;
@@ -556,12 +613,32 @@ export type OutlawAudio = {
   play(id: SoundId, options?: CueOptions): boolean;
   setMuted(muted: boolean): void;
   setVolume(volume: number): void;
+  /** Music on or off (Settings), and whether the moment allows it (off during a hack): it fades in and out. */
+  setMusic(on: boolean): void;
+  setMusicAllowed(allowed: boolean): void;
   dispose(): void;
 };
 export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawAudio {
   let ctx: AudioContext | null = null, master: GainNode | null = null, out: Out | null = null;
   let level = volume, silent = muted, disposed = false;
-  const apply = () => { if (master && ctx) master.gain.setTargetAtTime(silent ? 0 : level * 0.8, ctx.currentTime, 0.02); };
+  let musicMaster: GainNode | null = null, musicOut: Out | null = null, musicOn = true, musicAllowed = true, timer = 0, nextBar = 0, bar = 0, pass = 0, pattern = 0;
+  const audible = () => musicOn && musicAllowed && !disposed;
+  const apply = () => {
+    if (master && ctx) master.gain.setTargetAtTime(silent ? 0 : level * 0.8, ctx.currentTime, 0.02);
+    // The music has its own bus (so "Sound on" and "Music on" are separate) and fades over a second or two.
+    if (musicMaster && ctx) musicMaster.gain.setTargetAtTime(audible() ? level * 0.8 * MUSIC_LEVEL : 0, ctx.currentTime, 0.6);
+    if (ctx && musicOut && audible() && !timer) { nextBar = Math.max(nextBar, ctx.currentTime + 0.3); timer = window.setInterval(tick, 250); }
+  };
+  // A look-ahead scheduler: bars are laid down a second before they sound; it stops once the music has faded out.
+  const tick = () => {
+    if (!ctx || !musicOut) return;
+    if (!audible()) { if (ctx.currentTime > nextBar) { clearInterval(timer); timer = 0; } return; }
+    while (nextBar < ctx.currentTime + 1.2) {
+      if (bar === 0) pattern = Math.floor(Math.random() * MUSIC_PATTERNS.length);
+      scheduleMusicBar(musicOut, nextBar, bar, pass, pattern);
+      nextBar += MUSIC_BAR; bar = (bar + 1) % MUSIC_CHORDS.length; if (bar === 0) pass++;
+    }
+  };
   const onHidden = () => { if (document.hidden && ctx?.state === "running") void ctx.suspend(); else if (!document.hidden && ctx?.state === "suspended" && !silent) void ctx.resume(); };
   document.addEventListener("visibilitychange", onHidden);
   return {
@@ -571,7 +648,8 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
         if (!ctx) {
           const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
           if (!Context) return false;
-          ctx = new Context(); master = ctx.createGain(); master.gain.value = 0; out = outputChain(ctx, ctx.destination, master); apply();
+          ctx = new Context(); master = ctx.createGain(); master.gain.value = 0; out = outputChain(ctx, ctx.destination, master);
+          musicMaster = ctx.createGain(); musicMaster.gain.value = 0; musicOut = outputChain(ctx, ctx.destination, musicMaster); apply();
         }
         if (ctx.state !== "running") await ctx.resume();
         return ctx.state === "running";
@@ -584,7 +662,9 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
     },
     setMuted(value) { silent = value; apply(); },
     setVolume(value) { level = Math.max(0, Math.min(1, value)); apply(); },
-    dispose() { disposed = true; document.removeEventListener("visibilitychange", onHidden); void ctx?.close(); ctx = null; },
+    setMusic(on) { musicOn = on; apply(); },
+    setMusicAllowed(allowed) { musicAllowed = allowed; apply(); },
+    dispose() { disposed = true; clearInterval(timer); document.removeEventListener("visibilitychange", onHidden); void ctx?.close(); ctx = null; },
   };
 }
 
@@ -601,6 +681,17 @@ export async function renderSequence(steps: readonly { id: SoundId; at: number; 
   const ctx = new OfflineAudioContext(2, Math.ceil(seconds * sampleRate), sampleRate), master = ctx.createGain(); master.gain.value = 0.56;
   const out = outputChain(ctx, ctx.destination, master);
   for (const step of steps) cue(out, step.id, 0.01 + step.at, step.options);
+  return ctx.startRendering();
+}
+/** Render `passes` loops of the ambience offline, for listening without the game. */
+export async function renderMusic(passes = 4, sampleRate = 44100): Promise<AudioBuffer> {
+  const seconds = passes * MUSIC_CHORDS.length * MUSIC_BAR + 3;
+  const ctx = new OfflineAudioContext(2, Math.ceil(seconds * sampleRate), sampleRate), master = ctx.createGain(); master.gain.value = 0.56 * MUSIC_LEVEL;
+  const out = outputChain(ctx, ctx.destination, master);
+  for (let pass = 0, t = 0.05; pass < passes; pass++) {
+    const pattern = Math.floor(Math.random() * MUSIC_PATTERNS.length);
+    for (let bar = 0; bar < MUSIC_CHORDS.length; bar++, t += MUSIC_BAR) scheduleMusicBar(out, t, bar, pass, pattern);
+  }
   return ctx.startRendering();
 }
 /** 16-bit stereo WAV bytes of a rendered buffer. */
