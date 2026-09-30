@@ -32,6 +32,8 @@ const cues = await page.evaluate(async () => {
     "smash-break": [{ id: "smash", at: 0, options: { heavy: true } }],
     // Hitting each defender, then breaking it: Firewall, Tamper Alarm, Validator, Whale, Secure Chip.
     defenders: ["wall", "alarm", "validator", "whale", "chip"].flatMap((species, k) => [{ id: "smash", at: k * 3, options: { species } }, { id: "smash", at: k * 3 + 1.2, options: { species, heavy: true } }]),
+    // The Whale alone: its hit (a humpback's whoop), then its break (the long song).
+    whale: [{ id: "smash", at: 0.3, options: { species: "whale" } }, { id: "smash", at: 1.6, options: { species: "whale", heavy: true } }],
     // Each attacker going off: Difficulty Bomb, Reentrancy Attack, Hard Fork, Gas Spike.
     attackers: ["bomb", "reentrancy", "fork", "gasspike"].map((species, k) => ({ id: "blast", at: k * 2, options: { species } })),
     // Flips as a chain grows and stalls: the note climbs only when the chain does.
