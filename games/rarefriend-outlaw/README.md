@@ -855,7 +855,8 @@ The Centralised Exchange sells:
 | Permanent Trojan Horse | 150 OP | Simulated. One per session; it appears beside the Friend. (For playtesting, `PLAYTEST_START_HORSE` in `index.tsx` starts every game with it, waiting left of the start; it is off in the released game.) |
 | Temporary Trojan Horse | 10 OP | Simulated; stackable; 30 seconds of riding each. |
 
-The Butterfly Net is not sold: any outlaw drops one 5% of the time when neutralized, listed as Uncommon.
+The Butterfly Net is not sold: any outlaw drops one 5% of the time when neutralized, listed as Uncommon, but only while you have
+no net anywhere (in hand, in The Vault, waiting among an outlaw's belongings or stolen by one): it never drops twice.
 
 **Selling keepsakes.** The Exchange buys any keepsake for **Dust**: 1 OP each (`DUST_OP`), one at a time, from a "Sell keepsakes"
 list below its wares. A cosmetic keepsake you sell comes off if you were wearing it and held no other.

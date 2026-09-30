@@ -4049,8 +4049,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   const [osReducedMotion, setOsReducedMotion] = useState(false);
   const [reducedMotionOverride, setReducedMotionOverride] = useState<boolean | null>(null);
   const reducedMotion = reducedMotionOverride ?? osReducedMotion;
-  const live = useRef({ paused, wallet, prompt, menu, reducedMotion, equipped, status, owned, captured, halves, gear, busy, posters, nearPoster, viewPoster, charges: 0n, pending: false, keys, wanted, viewWanted, rewardsOpen, trophies, settling: Boolean(settling), briefing, learning: learnPending });
-  live.current = { paused, wallet, prompt, menu, reducedMotion, equipped, status, owned, captured, halves, gear, busy, posters, nearPoster, viewPoster, charges: 0n, pending: false, keys, wanted, viewWanted, rewardsOpen, trophies, settling: Boolean(settling), briefing, learning: learnPending };
+  const live = useRef({ paused, wallet, prompt, menu, reducedMotion, equipped, status, owned, captured, halves, gear, busy, posters, nearPoster, viewPoster, charges: 0n, pending: false, keys, wanted, viewWanted, rewardsOpen, trophies, settling: Boolean(settling), briefing, learning: learnPending, vault });
+  live.current = { paused, wallet, prompt, menu, reducedMotion, equipped, status, owned, captured, halves, gear, busy, posters, nearPoster, viewPoster, charges: 0n, pending: false, keys, wanted, viewWanted, rewardsOpen, trophies, settling: Boolean(settling), briefing, learning: learnPending, vault };
   const stop = () => mover.current?.stop();
 
   const definition = client.definition, maxPrize = maximumPrize(definition);
@@ -4966,7 +4966,11 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     if (npc.dropped) return;
     const shared = pair && npcs.current.some(other => other !== npc && PAIR.includes(other.name ?? "") && other.dropped);
     npc.dropped = true;
-    if (Math.random() < NET_DROP_CHANCE) npc.net = "waiting";
+    // One Butterfly Net at a time: none drops while you have one (in hand or The Vault), one waits among an outlaw's belongings, or an
+    // outlaw has robbed you of yours.
+    const netAround = (live.current.owned["butterfly-net"] ?? 0) > 0 || (live.current.vault.items["butterfly-net"] ?? 0) > 0
+      || npcs.current.some(other => other.net === "waiting" || other.loot.includes("butterfly-net"));
+    if (!netAround && Math.random() < NET_DROP_CHANCE) npc.net = "waiting";
     if (shared) return;
     // The keepsake is rolled now and waits among the belongings until you impound it.
     const keepsake = rollKeepsake(table, false); if (!keepsake) return;
