@@ -2004,6 +2004,12 @@ function spawnOutlawWave(away: WorldPoint, now: number) {
     return npc;
   }) };
 }
+/** The outlaws the arrows and the map follow: those still standing; once every one is down, the downed ones (still to loot). So
+ * with Pumper down, everything points at Dumper, and the other way round. */
+const huntedOutlaws = (npcs: readonly Npc[]) => {
+  const all = npcs.filter(npc => npc.kind === "outlaw"), standing = all.filter(npc => !npc.fallenAt);
+  return standing.length ? standing : all;
+};
 /** Where an outlaw is from the outside: its position, or the building it is hiding in. */
 const outlawSpot = (npc: Npc): WorldPoint => npc.scene === "outside" ? npc.position : PLACED_BUILDINGS.find(building => building.kind === npc.scene)!.position;
 
@@ -2510,7 +2516,7 @@ function drawMinimap(ctx: CanvasRenderingContext2D, player: WorldPoint, npcs: re
   ctx.fillStyle = "#000"; ctx.fillRect(Math.round(me.x) - 3, Math.round(me.y) - 3, 7, 7); ctx.fillStyle = on ? "#ccff00" : "#fff"; ctx.fillRect(Math.round(me.x) - 2, Math.round(me.y) - 2, 5, 5);
   // What each marker is, for the hover captions: only what has been discovered, you first so you win a tie.
   const marks: MapMark[] = [{ ...me, label: "You" }];
-  for (const npc of npcs) if (npc.kind === "outlaw" && found.outlaws.has(npc.id)) marks.push({ ...at(outlawSpot(npc)), label: `${npc.name ?? "Outlaw"} (wanted)` });
+  for (const npc of huntedOutlaws(npcs)) if (found.outlaws.has(npc.id)) marks.push({ ...at(outlawSpot(npc)), label: `${npc.name ?? "Outlaw"} (wanted)` });
   for (const mount of horses) if (!mount.mounted && found.landmarks.has(`horse:${mount.id}`)) marks.push({ ...at(mount.position), label: mount.kind === "golden" ? "Your Golden Trojan Horse" : mount.kind === "permanent" ? "Your Trojan Horse" : "Temporary Trojan Horse" });
   if (found.landmarks.has("store")) marks.push({ ...at(store.position), label: "Centralised Exchange" });
   for (const building of PLACED_BUILDINGS) if (found.landmarks.has(`building:${building.kind}`)) marks.push({ ...at(building.position), label: BUILDING_NAMES[building.kind] });
@@ -4588,7 +4594,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             if (onScreen(at, 300)) layers.push({ depth: building.position[0] + building.position[1], draw: () => drawBuilding(ctx, BUILDING_ART[building.kind], at.x, at.y, BUILDING_CELL) });
           }
           // Friendly guides: each points at the nearest living outlaw, or at the building it is hiding in (so the survivor of Pumper & Dumper is still tracked).
-          const outlawsAlive = npcs.current.filter(npc => npc.kind === "outlaw");
+          const outlawsAlive = huntedOutlaws(npcs.current);
           for (const guide of interior ? [] : GUIDES) {
             const at = toScreen(guide.position);
             if (!onScreen(at, 120)) continue;
@@ -4736,8 +4742,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           }
           // Warning arrows for outlaws (or the building hiding one) that are close but off-screen.
           const pulse = live.current.reducedMotion ? 1 : Math.floor(now / 300) % 2;
-          for (const npc of npcs.current) {
-            if (npc.kind !== "outlaw") continue;
+          for (const npc of huntedOutlaws(npcs.current)) {
             const spot = interior ? (here(npc) ? npc.position : null) : outlawSpot(npc);
             if (!spot || distance(spot, state.position) > WARN_RANGE) continue;
             const at = toScreen(spot);
