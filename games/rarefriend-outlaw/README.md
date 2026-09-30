@@ -840,7 +840,9 @@ building stands a stationary **friendly local** (just off the building's right f
 up to it; drawn in colour without a halo: a brown bowler with a red band, a warm face and a tan duster coat) in a bowler hat with a
 bobbing arrow above their head that points at the nearest living outlaw (for
 Pumper & Dumper it points at either, and at the survivor once one is shot);
-between waves the arrow disappears. Friendlies are not NPCs: nets and laser
+between waves the arrow disappears. The arrow aims from where it floats at the middle of the outlaw's drawn art (or at the
+door of the building one hides in), so it points exactly at them. Hovering a friendly local, or tapping one, shows "This friendly
+villager points you to the next outlaw. It is not targetable." Friendlies are not NPCs: nets and laser
 bolts ignore them. A **WANTED signpost** stands in the open ground south-east of the horse's spot beside the starting point (off the road), in view
 and within reading reach from where you begin and where every hack sends you back: a pole with the current outlaw wave's poster on a board, drawn from the same sprite variant
 that is wandering the country (two portraits for Pumper & Dumper), each name below its portrait

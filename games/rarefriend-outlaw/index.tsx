@@ -1894,8 +1894,12 @@ function drawBuilding(ctx: CanvasRenderingContext2D, art: BuildingArt, x: number
 const drawShop = (ctx: CanvasRenderingContext2D, x: number, y: number) => drawBuilding(ctx, SHOP_ART, x, y, SHOP_CELL);
 
 /** A one-bit arrow floating above the friendly's head, pointing along a screen direction (toward the wanted outlaw). */
+/** How high the guide's arrow floats over the villager's feet, and the villager's half width and height on screen (for hovering it). */
+const GUIDE_ARROW_LIFT = 98, GUIDE_HALF_WIDTH = 40, GUIDE_HEIGHT = 80;
+/** What hovering or tapping a friendly villager says. */
+const GUIDE_TIP = "This friendly villager points you to the next outlaw.\nIt is not targetable.";
 function drawGuideArrow(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, bob: number) {
-  ctx.save(); ctx.translate(Math.round(x), Math.round(y) - 98 - bob); ctx.rotate(angle);
+  ctx.save(); ctx.translate(Math.round(x), Math.round(y) - GUIDE_ARROW_LIFT - bob); ctx.rotate(angle);
   ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-2, -14); ctx.lineTo(-2, -6); ctx.lineTo(-18, -6); ctx.lineTo(-18, 6); ctx.lineTo(-2, 6); ctx.lineTo(-2, 14); ctx.closePath();
   ctx.lineJoin = "round"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 8; ctx.stroke();
   ctx.strokeStyle = "#000"; ctx.lineWidth = 4; ctx.stroke();
@@ -2453,12 +2457,13 @@ type MapMark = { x: number; y: number; label: string };
 const inBox = (box: MapBox, x: number, y: number) => x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
 /** A caption box: white (or light red) with a black frame and bold text, centred on (x, y) and kept inside the view. */
 function drawLabel(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, tone: "plain" | "warn" = "plain") {
+  // A "\n" starts a new line; the box grows to fit, centred on (x, y) and kept on screen.
   ctx.save(); ctx.font = "bold 12px ui-monospace, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  const w = Math.ceil(ctx.measureText(text).width) + 14, h = 20;
+  const lines = text.split("\n"), w = Math.ceil(Math.max(...lines.map(line => ctx.measureText(line).width))) + 14, h = 6 + 14 * lines.length;
   const left = Math.round(Math.max(4, Math.min(VIEW.width - w - 4, x - w / 2))), top = Math.round(Math.max(4, Math.min(VIEW.height - h - 4, y - h / 2)));
   ctx.fillStyle = "#000"; ctx.fillRect(left - 2, top - 2, w + 4, h + 4);
   ctx.fillStyle = tone === "warn" ? "#f7c4c0" : "#fff"; ctx.fillRect(left, top, w, h);
-  ctx.fillStyle = "#000"; ctx.fillText(text, left + w / 2, top + h / 2 + 1); ctx.restore();
+  ctx.fillStyle = "#000"; lines.forEach((line, k) => ctx.fillText(line, left + w / 2, top + 10 + 14 * k)); ctx.restore();
 }
 /** Where a tap is taking the Friend: a flat ring on the ground with a cross, the ring pulsing unless motion is reduced. */
 function drawTapMarker(ctx: CanvasRenderingContext2D, x: number, y: number, now: number, still: boolean) {
@@ -4044,6 +4049,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   const wantedSignRect = useRef<{ x: number; y: number; w: number; h: number } | null>(null), nearWantedSign = useRef(false);
   /** Where each Data Center poster is on screen this frame (for taps), by its index in `posters`. */
   const posterRects = useRef<{ index: number; x: number; y: number; w: number; h: number }[]>([]);
+  /** The friendly villagers on screen this frame (for their hover text), and the last tap on one: where, and until when it shows. */
+  const guideRects = useRef<{ x: number; y: number; w: number; h: number }[]>([]), guideTap = useRef<{ x: number; y: number; until: number } | null>(null);
   const voiceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [wanted, setWanted] = useState<Wanted | null>(null);
   /** Shots left in the Laser Gun (it comes with the licence), and the licence run: active, and how the last one ended. */
@@ -4639,16 +4646,20 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             if (onScreen(at, 300)) layers.push({ depth: building.position[0] + building.position[1], draw: () => drawBuilding(ctx, BUILDING_ART[building.kind], at.x, at.y, BUILDING_CELL) });
           }
           // Friendly guides: each points at the nearest living outlaw, or at the building it is hiding in (so the survivor of Pumper & Dumper is still tracked).
+          // The arrow aims from where it floats (GUIDE_ARROW_LIFT over the villager's feet) at the middle of the outlaw's drawn art
+          // (half its height over its feet), or at a building's door when it hides inside, so it points exactly at what you look for.
           const outlawsAlive = huntedOutlaws(npcs.current);
+          guideRects.current = [];
           for (const guide of interior ? [] : GUIDES) {
             const at = toScreen(guide.position);
             if (!onScreen(at, 120)) continue;
-            const target = live.current.settling ? dataCenterDoor()
-              : outlawsAlive.map(npc => ({ spot: outlawSpot(npc), far: distance(outlawSpot(npc), guide.position) })).sort((a, b) => a.far - b.far)[0]?.spot;
-            const aim = target ? toScreen(target) : null;
+            guideRects.current.push({ x: at.x - GUIDE_HALF_WIDTH, y: at.y - GUIDE_HEIGHT, w: GUIDE_HALF_WIDTH * 2, h: GUIDE_HEIGHT + 6 });
+            const nearest = live.current.settling ? null : outlawsAlive.map(npc => ({ npc, far: distance(outlawSpot(npc), guide.position) })).sort((a, b) => a.far - b.far)[0]?.npc;
+            const target = live.current.settling ? toScreen(dataCenterDoor()) : nearest ? toScreen(outlawSpot(nearest)) : null;
+            const aim = target && nearest?.scene === "outside" ? { x: target.x, y: target.y - (outlawArt(nearest.name, nearest.variant).rows.length - 1) * 5 / 2 } : target;
             layers.push({ depth: guide.position[0] + guide.position[1], draw: () => {
               drawVillager(ctx, at.x, at.y, aim ? aim.x < at.x : false);
-              if (aim) drawGuideArrow(ctx, at.x, at.y, Math.atan2(aim.y - at.y, aim.x - at.x), live.current.reducedMotion ? 0 : Math.round(Math.sin(now / 250) * 3));
+              if (aim) drawGuideArrow(ctx, at.x, at.y, Math.atan2(aim.y - (at.y - GUIDE_ARROW_LIFT), aim.x - at.x), live.current.reducedMotion ? 0 : Math.round(Math.sin(now / 250) * 3));
             } });
           }
           for (const shot of shots.current) {
@@ -4729,6 +4740,12 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           const goal = movement.destination;
           if (goal) { const g = toScreen(goal); layers.push({ depth: goal[0] + goal[1] - 40, draw: () => drawTapMarker(ctx, g.x, g.y, now, live.current.reducedMotion) }); }
           layers.sort((a, b) => a.depth - b.depth).forEach(layer => layer.draw());
+          // Hovering a friendly villager, or having just tapped one, explains what it is, over its head.
+          const hovering = pointer.current, onGuide = (rect: { x: number; y: number; w: number; h: number }, px: number, py: number) => px >= rect.x && px <= rect.x + rect.w && py >= rect.y && py <= rect.y + rect.h;
+          const tipFor = (hovering && guideRects.current.find(rect => onGuide(rect, hovering.x, hovering.y)))
+            || (guideTap.current && now < guideTap.current.until ? guideRects.current.find(rect => onGuide(rect, guideTap.current!.x, guideTap.current!.y)) : undefined);
+          // Over the arrow, or under the villager's feet when that would reach the HUD at the top of the screen.
+          if (tipFor) { const over = tipFor.y - GUIDE_ARROW_LIFT + 40; drawLabel(ctx, GUIDE_TIP, tipFor.x + tipFor.w / 2, over >= 80 ? over : tipFor.y + tipFor.h + 24); }
           // Close to a Data Center poster, a label says how to view it.
           if (interior?.kind === "datacenter" && live.current.nearPoster >= 0) {
             const rect = posterRects.current.find(entry => entry.index === live.current.nearPoster);
@@ -5504,6 +5521,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             event.preventDefault(); event.currentTarget.focus();
             const rect = event.currentTarget.getBoundingClientRect();
             const sx = (event.clientX - rect.left) * VIEW.width / rect.width, sy = (event.clientY - rect.top) * VIEW.height / rect.height;
+            // A tap on a friendly villager shows what it is for a few seconds (touch screens cannot hover); the Friend still walks there.
+            if (guideRects.current.some(guide => sx >= guide.x && sx <= guide.x + guide.w && sy >= guide.y && sy <= guide.y + guide.h)) guideTap.current = { x: sx, y: sy, until: performance.now() + 3000 };
             // A tap on a Data Center poster opens it in close-up instead of walking there.
             if (sceneRef.current === "datacenter") {
               const hit = posterRects.current.find(rect => sx >= rect.x && sx <= rect.x + rect.w && sy >= rect.y && sy <= rect.y + rect.h);
@@ -5865,7 +5884,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             Trojan Horses carry you at twice walking speed: a Temporary one lasts 30 seconds, R dismounts.</p>
           <h3>Outlaws</h3>
           <p>One wanted outlaw at a time (Pumper and Dumper come as a pair), shown on the WANTED signpost beside the Centralised Exchange.
-            The friendly local beside each building points the way with the arrow over their head. Walk into an outlaw and it robs you of an item; neutralize them and it is among their belongings, with a
+            The friendly villager beside each building points the way to the next outlaw with the arrow over their head (they cannot be targeted). Walk into an outlaw and it robs you of an item; neutralize them and it is among their belongings, with a
             keepsake of theirs, to impound. It takes {OUTLAW_HITS_BY_TIER[0]} hit to bring down the first outlaw, 2 for the next three, 3 after that and
             {" "}{OUTLAW_HITS_BY_TIER[OUTLAW_HITS_BY_TIER.length - 1]} for The Liquidator.</p>
           <h3>Belongings and the hack</h3>
