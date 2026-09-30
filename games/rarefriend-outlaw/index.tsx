@@ -3221,7 +3221,7 @@ function WalletBriefing({ tier, name, onStart }: { tier: WalletState["tier"]; na
   </div></div>;
 }
 
-export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClose, closeLabel = "Close", belowHud = false, briefing, onBriefed }: {
+export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClose, closeLabel = "Close", belowHud = false, briefing, onBriefed, learn = false, onLearned }: {
   wallet: WalletState | "probing"; name: string; busy: boolean; reducedMotion: boolean; onAct: (action: WalletAction) => void; onClose: () => void;
   /** The finished board's close button; null leaves it out (the practice page's last tier). */
   closeLabel?: string | null;
@@ -3231,6 +3231,10 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
    * overlay shows it once per mount (the practice page). */
   briefing?: boolean;
   onBriefed?: () => void;
+  /** The first hack of a session: after the briefing, an overlay points at the "?" (which glows and pulses) and waits until it has
+   * been opened and closed again; then `onLearned` and the board is yours. */
+  learn?: boolean;
+  onLearned?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const hover = useRef({ index: -1, x: 0, y: 0 });
@@ -3258,6 +3262,11 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
   const [ownBriefing, setOwnBriefing] = useState(true);
   const briefed = briefing === undefined ? !ownBriefing : !briefing;
   const endBriefing = () => { if (briefing === undefined) setOwnBriefing(false); else onBriefed?.(); };
+  // The first-time guide: shown once the briefing is gone, until the help page has been opened and closed.
+  const [learnOpened, setLearnOpened] = useState(false);
+  const learning = learn && wallet !== "probing" && wallet.phase === "open" && briefed && !help;
+  // However the help page closes (its button or Esc), once it has been opened from the guide the guide is done.
+  useEffect(() => { if (!help && learnOpened && learn) onLearned?.(); }, [help, learnOpened, learn, onLearned]);
   // Sandwich Attack: the board runs on real time. The loop ticks it (ten times a second, while open and the help page is closed)
   // through onAct; both are kept here so the loop always uses the latest. `lastTick`: when the loop last ticked (null: not ticking).
   const ticker = useRef({ onAct, help }); ticker.current = { onAct, help: help || (wallet !== "probing" && wallet.phase === "open" && !briefed) };
@@ -3782,7 +3791,16 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
     {!help && open && <button type="button" className={belowHud ? "outlaw-wallet-giveup outlaw-wallet-giveup-low" : "outlaw-wallet-giveup"}
       onClick={() => onAct({ type: "giveUp" })}>Give up · Esc</button>}
     {wallet !== "probing" && wallet.phase === "open" && !briefed && !help && <WalletBriefing tier={wallet.tier} name={name} onStart={endBriefing} />}
-    {wallet !== "probing" && !help && <button type="button" className="outlaw-wallet-help-button" aria-label="How to hack the wallet" onClick={() => setHelp(true)}>?</button>}
+    {learning && <div className="outlaw-learn" role="dialog" aria-label="Learn how to play the Hacking Game">
+      <p>Learn how to play the Hacking Game.</p>
+      <svg className={reducedMotion ? "outlaw-learn-arrow outlaw-still" : "outlaw-learn-arrow"} viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M8 8 L48 48 M48 48 L48 24 M48 48 L24 48" fill="none" stroke="#000" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M8 8 L48 48 M48 48 L48 24 M48 48 L24 48" fill="none" stroke="#ffd34d" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>}
+    {wallet !== "probing" && !help && <button type="button" autoFocus={learning}
+      className={learning ? `outlaw-wallet-help-button outlaw-wallet-help-button-learn${reducedMotion ? " outlaw-still" : ""}` : "outlaw-wallet-help-button"}
+      aria-label="How to hack the wallet" onClick={() => { setHelp(true); if (learning) setLearnOpened(true); }}>?</button>}
     {wallet !== "probing" && help && <WalletHelp tier={wallet.tier} onClose={() => setHelp(false)} />}
   </div>;
 }
@@ -3964,6 +3982,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   const [haul, setHaul] = useState<Haul | null>(null);
   /** The twist briefing is open over a new board, before the first move. */
   const [briefing, setBriefing] = useState(false);
+  /** The first hack of the session shows the "Learn how to play" guide to the "?" page (see WalletOverlay's `learn`). */
+  const [learnPending, setLearnPending] = useState(true);
   /** The REWARDS frame is open over the cracked board. */
   const [rewardsOpen, setRewardsOpen] = useState(false);
   const miningSince = useRef<number | null>(null);
@@ -4018,8 +4038,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   const [osReducedMotion, setOsReducedMotion] = useState(false);
   const [reducedMotionOverride, setReducedMotionOverride] = useState<boolean | null>(null);
   const reducedMotion = reducedMotionOverride ?? osReducedMotion;
-  const live = useRef({ paused, wallet, prompt, menu, reducedMotion, equipped, status, owned, captured, halves, gear, busy, posters, nearPoster, viewPoster, charges: 0n, pending: false, keys, wanted, viewWanted, rewardsOpen, trophies, settling: Boolean(settling), briefing });
-  live.current = { paused, wallet, prompt, menu, reducedMotion, equipped, status, owned, captured, halves, gear, busy, posters, nearPoster, viewPoster, charges: 0n, pending: false, keys, wanted, viewWanted, rewardsOpen, trophies, settling: Boolean(settling), briefing };
+  const live = useRef({ paused, wallet, prompt, menu, reducedMotion, equipped, status, owned, captured, halves, gear, busy, posters, nearPoster, viewPoster, charges: 0n, pending: false, keys, wanted, viewWanted, rewardsOpen, trophies, settling: Boolean(settling), briefing, learning: learnPending });
+  live.current = { paused, wallet, prompt, menu, reducedMotion, equipped, status, owned, captured, halves, gear, busy, posters, nearPoster, viewPoster, charges: 0n, pending: false, keys, wanted, viewWanted, rewardsOpen, trophies, settling: Boolean(settling), briefing, learning: learnPending };
   const stop = () => mover.current?.stop();
 
   const definition = client.definition, maxPrize = maximumPrize(definition);
@@ -4095,6 +4115,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
         if (state.viewPoster) { setViewPoster(null); return; }
         if (state.viewWanted) { setViewWanted(false); return; }
         if (state.briefing && state.wallet) { setBriefing(false); return; }
+        // The first-time guide waits for the "?" to be opened: Escape does not give up meanwhile.
+        if (state.wallet && state.learning) return;
         if (state.rewardsOpen) { setRewardsOpen(false); return; }
         if (state.menu) setMenu(null);
         else if (state.prompt) { if (state.prompt.step === "list") leaveWallet(); else if (state.prompt.step === "exited") setPrompt(null); }
@@ -4116,6 +4138,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
         if ((event.code === "Enter" || event.code === "Space") && !event.repeat) { event.preventDefault(); setBriefing(false); }
         return;
       }
+      // The first-time guide: the board's keys wait (Enter or Space presses the focused "?" button instead).
+      if (state.wallet && state.learning) return;
       if (state.wallet) {
         // Keyboard play inside the wallet: arrows move the cursor, Enter or Space acts on it, 1-3 run a held program.
         const current = state.wallet.state; if (current === "probing" || current.phase !== "open") return;
@@ -5438,7 +5462,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           <button type="button" onClick={() => cycleEquipped()}>Switch</button>
           {riding && <button type="button" onClick={() => dismount()}>Dismount</button>}
         </div>}
-        {wallet && <WalletOverlay wallet={wallet.state} name={wallet.name ?? "The hacker"} busy={busy} reducedMotion={reducedMotion} onAct={walletAct} onClose={closeWallet} belowHud briefing={briefing} onBriefed={() => setBriefing(false)} />}
+        {wallet && <WalletOverlay wallet={wallet.state} name={wallet.name ?? "The hacker"} busy={busy} reducedMotion={reducedMotion} onAct={walletAct} onClose={closeWallet} belowHud briefing={briefing} onBriefed={() => setBriefing(false)}
+          learn={learnPending} onLearned={() => setLearnPending(false)} />}
         {wallet && haul && rewardsOpen && <RewardsFrame items={haul.items} jackpot={haul.jackpot} outlaw={haul.outlaw} still={reducedMotion} onClose={() => setRewardsOpen(false)} />}
         <div className="outlaw-hud">
           {/* The status strip is hidden (but keeps its place, so the buttons stay put) while the hacking game is open. */}

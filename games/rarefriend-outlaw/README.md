@@ -1024,6 +1024,11 @@ page with bundler-style imports:
 npx tsc -p games/rarefriend-outlaw/tsconfig.json
 ```
 
+**First hack:** the first hardware wallet of a session opens with a short guide after its twist briefing: the board dims, a
+yellow arrow blinks toward the **?** in the corner, which glows and pulses, over "Learn how to play the Hacking Game." The board
+waits (its keys and Esc too) until the **?** has been pressed; once its explanation closes, the guide is gone and the hack
+begins. It never returns that session (`learn` on `WalletOverlay`); under Reduce motion the arrow and the glow hold still.
+
 ## Sound and music
 
 Spaghetti-Western sound effects, all synthesized in code with the Web Audio API in `audio.ts` (no recordings or samples): a
