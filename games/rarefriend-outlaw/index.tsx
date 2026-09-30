@@ -666,8 +666,9 @@ type RunEnd = { reason: string; outcome: string; reward: bigint };
 /** Playtesting: true starts every new game with the Permanent Trojan Horse, owned and waiting left of the start (startHorseSpot);
  * false (the released game) makes it a PERMANENT_HORSE_OP purchase at the Exchange. */
 const PLAYTEST_START_HORSE = true;
-/** Each animal's call (audio.ts) and how often, at most, one of its kind calls (ms, a random time in the range): only animals within
- * HEAR_RANGE are heard, quieter with distance and panned to their side of the screen. The dragon roars as it breathes fire instead. */
+/** Each animal's call (audio.ts) and how often each animal of that kind calls (ms, a random time in the range, on its own timer):
+ * only animals within HEAR_RANGE are heard, quieter with distance and panned to their side of the screen. The dragon roars as it
+ * breathes fire instead. */
 const ANIMAL_CALLS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: readonly [number, number] }>>> = {
   rabbit: { cue: "thump", every: [9000, 20000] }, cat: { cue: "meow", every: [7000, 16000] }, dog: { cue: "bark", every: [6000, 14000] },
   deer: { cue: "snort", every: [9000, 20000] }, cow: { cue: "moo", every: [8000, 18000] }, pig: { cue: "oink", every: [5000, 11000] },
@@ -676,10 +677,12 @@ const ANIMAL_CALLS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: rea
   lion: { cue: "roar", every: [7000, 14000] }, bear: { cue: "growl", every: [6000, 12000] }, fox: { cue: "yip", every: [4000, 9000] },
 };
 /** Sounds that go on while an animal is doing something, repeated every `every` ms while it is within `range`: a snake slithering
- * (only while it moves), the bees' buzz and a butterfly's wings. */
-const ANIMAL_LOOPS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: number; range: number; moving?: boolean }>>> = {
-  snake: { cue: "slither", every: 500, range: 360, moving: true }, bee: { cue: "buzz", every: 470, range: 300 }, butterfly: { cue: "flutter", every: 430, range: 170 },
+ * (only while it moves), the bees' buzz and a butterfly's wings. Several nearby add voices, up to three (bees one per `perVoice`). */
+const ANIMAL_LOOPS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: number; range: number; moving?: boolean; perVoice?: number }>>> = {
+  snake: { cue: "slither", every: 500, range: 360, moving: true }, bee: { cue: "buzz", every: 470, range: 300, perVoice: 5 }, butterfly: { cue: "flutter", every: 430, range: 170 },
 };
+/** At most this many animal calls start in any one second, however big the crowd. */
+const MAX_CALLS_PER_SECOND = 5;
 const HEAR_RANGE = 520; // world units: animals further away are not heard
 /** Time between a riding horse's galloping strides (each stride is four hoofbeats, the `hoof` cue). */
 const HOOF_STRIDE_MS = 520;
@@ -4097,7 +4100,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     /** Outlaws already met in this country (for the showdown cue). */
     const met = new Set<string>();
     /** When each kind of animal may next call, when each looping animal sound may next repeat, and the dragon breaths already roared. */
-    const nextCall = new Map<string, number>(), nextLoop = new Map<string, number>(), roared = new Set<number>();
+    const nextCall = new Map<number, number>(), nextLoop = new Map<string, number>(), roared = new Set<number>(), recentCalls: number[] = [];
     let cancelled = false, frame = 0, previous = 0, lastDebug = 0, shopLatch = false, terminalLatch = false, lastPoster = -1, side: "left" | "right" = "right", doorCooldown = 0;
     const enterBuilding = (kind: BuildingKind, now: number) => {
       const mount = ridden(); if (mount) {
@@ -4658,31 +4661,46 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             const at = toScreen(spot);
             if (!onScreen(at, 0)) drawWarningArrow(ctx, at, pulse);
           }
-          // Animal sounds: for each kind, the nearest one in earshot calls now and then, placed by distance and side of the screen.
+          // Animal sounds: every animal in earshot calls now and then on its own timer, so a herd or a flock sounds like one, placed by
+          // distance and side of the screen; at most MAX_CALLS_PER_SECOND start in any second, so a crowd stays a chorus, not a din.
           if (active) {
-            const nearest = new Map<AnimalId, { npc: Npc; far: number }>();
+            const place = (npc: Npc, far: number, range: number) => {
+              const at = toScreen(npc.position);
+              return { gain: Math.max(0, 1 - far / range) ** 1.3, pan: Math.max(-0.8, Math.min(0.8, (at.x - VIEW.width / 2) / (VIEW.width / 2) * 0.8)) };
+            };
+            while (recentCalls.length && now - recentCalls[0] > 1000) recentCalls.shift();
+            const crowds = new Map<AnimalId, { npc: Npc; far: number }[]>();
             for (const npc of npcs.current) {
               if (npc.kind === "outlaw" || npc.fallenAt || !here(npc)) continue;
-              const far = distance(npc.position, state.position), kind = npc.kind as AnimalId, best = nearest.get(kind);
-              if (far <= HEAR_RANGE && (!best || far < best.far)) nearest.set(kind, { npc, far });
+              const far = distance(npc.position, state.position), kind = npc.kind as AnimalId;
               // The dragon roars each time it stops to breathe fire.
               if (kind === "dragon" && npc.mode === "breathe" && far <= HEAR_RANGE * 1.5 && !roared.has(npc.modeUntil)) {
-                roared.add(npc.modeUntil); const at = toScreen(npc.position);
-                audio.current?.play("dragon", { gain: Math.max(0.25, 1 - far / (HEAR_RANGE * 1.5)), pan: (at.x - VIEW.width / 2) / VIEW.width * 1.6 });
+                roared.add(npc.modeUntil); audio.current?.play("dragon", place(npc, far, HEAR_RANGE * 1.5));
               }
-            }
-            for (const [kind, { npc, far }] of nearest) {
-              const at = toScreen(npc.position), pan = Math.max(-0.8, Math.min(0.8, (at.x - VIEW.width / 2) / (VIEW.width / 2) * 0.8));
+              if (far > HEAR_RANGE) continue;
               const call = ANIMAL_CALLS[kind];
               if (call) {
-                const due = nextCall.get(kind);
-                if (due === undefined) nextCall.set(kind, now + random(0, call.every[0]));
-                else if (now >= due) { nextCall.set(kind, now + random(...call.every)); audio.current?.play(call.cue, { gain: (1 - far / HEAR_RANGE) ** 1.3, pan }); }
+                const due = nextCall.get(npc.id);
+                // A newcomer starts at a random point in its rhythm, so animals of a kind never call in step.
+                if (due === undefined) nextCall.set(npc.id, now + random(0, call.every[1]));
+                else if (now >= due) {
+                  if (recentCalls.length >= MAX_CALLS_PER_SECOND) nextCall.set(npc.id, now + random(200, 700));
+                  else { nextCall.set(npc.id, now + random(...call.every)); recentCalls.push(now); audio.current?.play(call.cue, place(npc, far, HEAR_RANGE)); }
+                }
               }
               const loop = ANIMAL_LOOPS[kind];
-              if (loop && far <= loop.range && (!loop.moving || npc.walking) && now >= (nextLoop.get(kind) ?? 0)) {
-                nextLoop.set(kind, now + loop.every); audio.current?.play(loop.cue, { gain: (1 - far / loop.range) ** 1.2, pan });
+              if (loop && far <= loop.range && (!loop.moving || npc.walking)) {
+                const crowd = crowds.get(kind); if (crowd) crowd.push({ npc, far }); else crowds.set(kind, [{ npc, far }]);
               }
+            }
+            // Ongoing sounds: the more of a kind nearby, the more voices (up to three), each from one of the nearest.
+            for (const [kind, crowd] of crowds) {
+              const loop = ANIMAL_LOOPS[kind]!;
+              if (now < (nextLoop.get(kind) ?? 0)) continue;
+              nextLoop.set(kind, now + loop.every);
+              crowd.sort((a, b) => a.far - b.far);
+              const voices = Math.min(3, crowd.length, loop.perVoice ? Math.ceil(crowd.length / loop.perVoice) : crowd.length);
+              for (const { npc, far } of crowd.slice(0, voices)) audio.current?.play(loop.cue, place(npc, far, loop.range));
             }
           }
           // A downed outlaw left lying gets back up after OUTLAW_DOWN_MS (unless its dialog or wallet is open), but never once you
