@@ -8,7 +8,7 @@ import {
 } from "@rarefriends/friendsdk/world";
 import { loadSvg } from "@rarefriends/friendsdk/assets";
 import { createFriendReader, spriteFrame, type GenerationSprites, type SpriteFacing } from "@rarefriends/friendsdk/sprites";
-import type { KeepsakePerk, Rarity } from "./keepsakes";
+import { KEEPSAKES, RARITIES, type KeepsakePerk, type Rarity } from "./keepsakes";
 import { rollKeepsake, PERK_TEXT } from "./loot";
 import { RewardsFrame, RARITY_COLOUR, type LootRarity, type RewardItem } from "./rewards";
 import { TROPHIES, drawTrophy } from "./trophies";
@@ -711,6 +711,19 @@ const ITEMS: readonly Item[] = [
 type Durable = Exclude<ItemId, "laser">;
 type Owned = Record<Durable, number>;
 const startOwned: Owned = { "butterfly-net": 0, cleaver: 0, "temp-horse": 0 };
+/** Playtesting (remove before release: set false): every new game starts with everything you can wear, hold or ride: every cosmetic
+ * keepsake (hats, masks, apron, hoodie, cape, shoes, off-hand items, the gun and cleaver skins, both pets and the diploma), the
+ * Butterfly Net, the Cleaver, three Temporary Trojan Horses and the Shiny Golden Trojan Horse. */
+const PLAYTEST_ALL_GEAR = true;
+const playtestOwned: Owned = { "butterfly-net": 1, cleaver: 1, "temp-horse": 3 };
+/** Every cosmetic keepsake, as a row of the inventory: found in the KEEPSAKES.md table by name. */
+const playtestKeepsakes = (): OwnedKeepsake[] => Object.values(COSMETICS).flatMap(cosmetic => {
+  for (const [outlaw, byRarity] of Object.entries(KEEPSAKES)) for (const rarity of RARITIES) {
+    const found = byRarity[rarity].find(keepsake => keepsake.name === cosmetic.keepsake);
+    if (found) return [{ name: found.name, outlaw, rarity, detail: found.detail, count: 1, perk: found.perk }];
+  }
+  return [];
+});
 /** What can be held in hand (Q, Space): not the Temporary Trojan Horse, which is mounted from the inventory instead. */
 const holdable = (id: ItemId) => id !== "temp-horse";
 
@@ -3944,7 +3957,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   // earned (1-12) and the Golden Trojan Horse. A page reload still loses them.
   const [headStart, setHeadStart] = useState<HeadStart>(NO_HEAD_START);
   const [trophies, setTrophies] = useState(0);
-  const [goldenHorse, setGoldenHorse] = useState(false);
+  const [goldenHorse, setGoldenHorse] = useState(PLAYTEST_ALL_GEAR);
   const goldenRef = useRef(false); goldenRef.current = goldenHorse;
   /** The Cold Wallet's REWARDS frame, open after a twelve-word settlement. */
   const [coldRewards, setColdRewards] = useState<readonly RewardItem[] | null>(null);
@@ -4149,7 +4162,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     };
     setFailed(false); setStatus("Loading the country and your Friend…"); setWallet(null); setPrompt(null); if (voiceTimer.current) clearTimeout(voiceTimer.current); setMenu(null); setStats({ shots: 0, bears: 0, lions: 0, jackpots: 0, biggest: 0n });
     setSeedWords(new Set(PLAYTEST.liquidator ? SEED_WORDS.slice(0, SEED_WORDS.length - 1) : [])); setProgramCards([]); setKeys(new Set(PLAYTEST_START_KEYS)); setIntel(0); setGasVouchers(0); setHaul(null); miningSince.current = null; setPosters([]); setNearPoster(-1); setViewPoster(null);
-    setSnapshot(null); setSpent(0n); setShotsLeft(0n); setRun(null); setRunEnd(null); setSettling(null); setSettled(null); setPhrase(new Set()); setKeepsakes([]); setVault(EMPTY_VAULT); setPerks([]); shots.current = []; setOwned(startOwned); setHalves({ top: false, bottom: false });  setGear({}); petSpot.current = null;  setCaptured({}); setEquipped(null); effects.current = []; setOp(0); setPermanentHorse(PLAYTEST_START_HORSE);
+    setSnapshot(null); setSpent(0n); setShotsLeft(0n); setRun(null); setRunEnd(null); setSettling(null); setSettled(null); setPhrase(new Set()); setKeepsakes(PLAYTEST_ALL_GEAR ? playtestKeepsakes() : []); setVault(EMPTY_VAULT); setPerks([]); shots.current = []; setOwned(PLAYTEST_ALL_GEAR ? playtestOwned : startOwned); setHalves({ top: false, bottom: false });  setGear({}); petSpot.current = null;  setCaptured({}); setEquipped(null); effects.current = []; setOp(0); setPermanentHorse(PLAYTEST_START_HORSE);
     setFeedback(""); setNote(PLAYTEST.liquidator ? "Playtest: The Liquidator is the last outlaw, and you hold 11 of the 12 seed words. Buy a licence to hunt him." : ""); setBusy(false);
     const start = performance.now();
     const animals = initialAnimals(spawn, start);
