@@ -31,7 +31,9 @@ function SoundPreview() {
     <p>
       <button type="button" onClick={() => { void play("flip", { step }); setStep(value => value + 1); }}>Flip (next note: {step % 10 + 1} of 10)</button>{" "}
       <button type="button" onClick={async () => { if (!(await audio.current.unlock())) return; for (let i = 0; i < 8; i++) setTimeout(() => audio.current.play("hoof"), i * 520); }}>Gallop (8 strides)</button>{" "}
-      <button type="button" onClick={async () => { if (!(await audio.current.unlock())) return; [0, 1, 2, 3, 4].forEach((k, i) => setTimeout(() => audio.current.play("flip", { step: k }), i * 220)); setTimeout(() => audio.current.play("strike"), 1300); setTimeout(() => audio.current.play("win"), 2300); }}>A short hack</button>
+      <button type="button" onClick={async () => { if (!(await audio.current.unlock())) return; [0, 1, 2, 3, 4].forEach((k, i) => setTimeout(() => audio.current.play("flip", { step: k }), i * 220)); setTimeout(() => audio.current.play("smash"), 1300); setTimeout(() => audio.current.play("smash", { heavy: true }), 2100); setTimeout(() => audio.current.play("win"), 3400); }}>A short hack</button>{" "}
+      <button type="button" onClick={() => void play("smash", undefined)}>Smash</button>{" "}
+      <button type="button" onClick={async () => { if (await audio.current.unlock()) audio.current.play("smash", { heavy: true }); }}>Smash and break</button>
     </p>
     {note && <p role="alert">{note}</p>}
   </main>;

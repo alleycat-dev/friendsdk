@@ -3864,7 +3864,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   useEffect(() => { audio.current?.setMuted(!soundOn); audio.current?.setVolume(soundVolume); }, [soundOn, soundVolume]);
   useEffect(() => () => audio.current?.dispose(), []);
   // The hacking board's cues come from comparing each new board state with the last: a tile uncovered plucks the next note of the
-  // scale, lost Integrity is a strike-back, a new twist event is its stinger, and a cracked wallet plays the win flourish.
+  // scale, hitting a defender smashes brick (its instant strike-back included), other lost Integrity is a thud, a new twist event
+  // is its stinger, and a cracked wallet plays the win flourish.
   const lastBoard = useRef<WalletState | null>(null), flipStep = useRef(0);
   useEffect(() => {
     const next = wallet && wallet.state !== "probing" ? wallet.state : null, before = lastBoard.current;
@@ -3872,8 +3873,11 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     if (!next) { flipStep.current = 0; return; }
     if (!before || before === next) return;
     const player = audio.current!, revealed = (board: WalletState) => board.tiles.filter(tile => tile.revealed).length;
+    // A defender hit: its HP dropped (a strike-back lands at the same moment, so the smash stands for both).
+    const hit = next.tiles.findIndex((tile, index) => isDefender(tile.kind) && before.tiles[index]?.kind === tile.kind && tile.hp < before.tiles[index].hp);
     if (next.twistEvent && next.twistEvent !== before.twistEvent) player.play("twist");
     else if (next.phase === "won" && before.phase !== "won") player.play("win");
+    else if (hit >= 0) player.play("smash", { heavy: next.tiles[hit].hp <= 0 });
     else if (next.grit < before.grit) player.play("strike");
     else if (revealed(next) > revealed(before)) player.play("flip", { step: flipStep.current++ });
   }, [wallet]);

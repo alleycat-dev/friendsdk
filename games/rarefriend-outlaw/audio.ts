@@ -5,7 +5,7 @@
 // echo. Like the SDK's sound kit: creating the player makes no AudioContext; `unlock()` must be called from a player gesture;
 // muted, locked or hidden players drop cues instead of queueing them.
 
-export const SOUND_IDS = ["laser", "hoof", "bump", "showdown", "flip", "strike", "twist", "win",
+export const SOUND_IDS = ["laser", "hoof", "bump", "showdown", "flip", "smash", "strike", "twist", "win",
   "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
   "roar", "growl", "yip", "dragon"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
@@ -16,7 +16,8 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   flip: "A hacking-game tile flip: a guitar pluck, stepping through an A-minor scale",
   showdown: "Tumbleweed time: the first time a new outlaw comes near (as its red arrow appears): wind, a distant bell, a lone whistle and a trembling twang",
   bump: "Walking into an outlaw (who robs you): like walking into something, a body thump and a hollow bonk",
-  strike: "Losing Integrity in a hack (a strike-back, a bomb, a bite): an anvil thud under a low twang",
+  smash: "Hitting a defender in a hack: demolishing brickwork, a crack, crumbling stone and a thud (a bigger collapse when it breaks)",
+  strike: "Losing Integrity in a hack to a bomb, a bite or the like (a hit's instant strike-back is covered by the smash): an anvil thud under a low twang",
   twist: "A twist striking (RUGPULL!!!): whip crack, a falling whistle and a trembling guitar chord",
   win: "A cracked wallet: a mariachi trumpet flourish over a strummed chord",
   meow: "Cat: a meow, rising then falling (mi-aow)",
@@ -215,9 +216,9 @@ function send(o: Out, node: AudioNode, amount: number) {
 // Cues
 // ---------------------------------------------------------------------------------------------------------------------------
 
-/** `step`: which note of a scale; `gain` (0-1) and `pan` (-1 left to 1 right) place a sound in the world (an animal's distance and
+/** `heavy`: the bigger version of a cue (a defender that breaks). `step`: which note of a scale; `gain` (0-1) and `pan` (-1 left to 1 right) place a sound in the world (an animal's distance and
  * side of the screen). */
-export type CueOptions = { step?: number; gain?: number; pan?: number };
+export type CueOptions = { step?: number; gain?: number; pan?: number; heavy?: boolean };
 function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
   const o = placed(base, t, options), { ctx } = o;
   switch (id) {
@@ -392,6 +393,20 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       pluck(o, t, hz(note + 12), 0.35, 0.9, 0.994, 0.3);
       break;
     }
+    case "smash": {
+      // Demolishing a brick: a sharp crack, a low thud, then crumbling stone, grains of grit falling fast and thinning out; a defender
+      // that breaks brings the wall down, longer and heavier, with chunks of rubble bouncing after.
+      const heavy = options.heavy ?? false, crumble = heavy ? 1.1 : 0.45, grains = heavy ? 55 : 22;
+      noiseBand(o, t, 0.06, "bandpass", 2600, 1800, 1.5, 0.5, 0.002, 0.15);
+      thud(o, t, heavy ? 65 : 85, heavy ? 0.55 : 0.4);
+      noiseBand(o, t + 0.01, crumble, "bandpass", 1400, 700, 0.9, heavy ? 0.16 : 0.1, 0.01, 0.2);
+      for (let k = 0; k < grains; k++) {
+        const at = t + 0.015 + crumble * Math.pow(Math.random(), 1.8), size = Math.random();
+        noiseBand(o, at, 0.012 + size * 0.03, "bandpass", 1500 + (1 - size) * 3500, 1200 + (1 - size) * 3000, 3, (0.04 + size * 0.08) * (1 - (at - t) / (crumble + 0.1)), 0.001, 0.1);
+      }
+      if (heavy) for (const at of [0.35, 0.52, 0.66, 0.82]) { woodBlock(o, t + at + Math.random() * 0.05, 300 + Math.random() * 180, 0.09); thud(o, t + at, 110, 0.12); }
+      break;
+    }
     case "strike": {
       // The anvil: a low sine that drops in pitch, a metallic ring on top, and the guitar's low E hit hard underneath.
       const body = ctx.createOscillator(), g = ctx.createGain();
@@ -447,7 +462,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 0.9, bark: 0.7, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 0.6, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 0.7, hoof: 0.5, flip: 1, bump: 0.45, showdown: 4.6, strike: 1.3, twist: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 0.6, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 0.7, hoof: 0.5, flip: 1, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {
