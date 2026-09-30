@@ -3294,7 +3294,7 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
   const endBriefing = () => { if (briefing === undefined) setOwnBriefing(false); else onBriefed?.(); };
   // The first-time guide: shown once the briefing is gone, until the help page has been opened and closed.
   const [learnOpened, setLearnOpened] = useState(false);
-  const learning = learn && wallet !== "probing" && wallet.phase === "open" && briefed && !help;
+  const learning = learn && wallet !== "probing" && wallet.phase === "open" && briefed && !help && !learnOpened;
   // However the help page closes (its button or Esc), once it has been opened from the guide the guide is done.
   useEffect(() => { if (!help && learnOpened && learn) onLearned?.(); }, [help, learnOpened, learn, onLearned]);
   // Sandwich Attack: the board runs on real time. The loop ticks it (ten times a second, while open and the help page is closed)
