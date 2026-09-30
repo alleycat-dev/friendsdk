@@ -5,7 +5,7 @@
 // echo. Like the SDK's sound kit: creating the player makes no AudioContext; `unlock()` must be called from a player gesture;
 // muted, locked or hidden players drop cues instead of queueing them.
 
-export const SOUND_IDS = ["laser", "hoof", "step", "bump", "showdown", "flip", "smash", "strike", "twist", "wipe", "win",
+export const SOUND_IDS = ["laser", "hoof", "step", "bump", "showdown", "down", "flip", "smash", "strike", "twist", "wipe", "win",
   "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "caw", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
   "roar", "growl", "yip", "dragon", "wail"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
@@ -16,6 +16,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   flip: "A hacking-game tile flip: a computer bleep whose note is the chain's size, rising only as the chain grows",
   showdown: "Tumbleweed time: the first time a new outlaw comes near (as its red arrow appears): wind, a distant bell, a lone whistle and a trembling twang",
   step: "A soft, light footstep thud (every step while walking)",
+  down: "An outlaw shot down (his loot window opens): a small victory, a quick trumpet ta-da over a strummed chord",
   bump: "Walking into an outlaw (who robs you): like walking into something, a body thump and a hollow bonk",
   smash: "Hitting a defender in a hack: demolishing brickwork, a crack, crumbling stone and a thud (a bigger collapse when it breaks)",
   strike: "Losing Integrity in a hack to a bomb, a bite or the like (a hit's instant strike-back is covered by the smash): an anvil thud under a low twang",
@@ -512,10 +513,10 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       // otherwise repeats the last note.
       const note = FLIP_SCALE[Math.max(0, Math.min(FLIP_SCALE.length - 1, options.step ?? 0))] + 12, freq = hz(note);
       const lp = ctx.createBiquadFilter(), g = ctx.createGain(), length = 0.07;
-      lp.type = "lowpass"; lp.frequency.value = 5000; lp.Q.value = 0.7;
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.1, t + 0.002); g.gain.setValueAtTime(0.1, t + length - 0.004); g.gain.linearRampToValueAtTime(0, t + length);
+      lp.type = "lowpass"; lp.frequency.value = 3000; lp.Q.value = 0.7;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.055, t + 0.003); g.gain.setValueAtTime(0.055, t + length - 0.006); g.gain.linearRampToValueAtTime(0, t + length);
       lp.connect(g); send(o, g, 0);
-      for (const [type, level] of [["square", 0.55], ["sine", 0.6]] as const) {
+      for (const [type, level] of [["square", 0.35], ["sine", 0.8]] as const) {
         const osc = ctx.createOscillator(), og = ctx.createGain();
         osc.type = type; osc.frequency.value = freq; og.gain.value = level;
         osc.connect(og).connect(lp); osc.start(t); osc.stop(t + length + 0.01);
@@ -556,6 +557,13 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       const tone = 0.9 + Math.random() * 0.2;
       thud(o, t, 95 * tone, 0.06);
       noiseBand(o, t, 0.05, "lowpass", 420 * tone, 220 * tone, 0.7, 0.03, 0.006, 0);
+      break;
+    }
+    case "down": {
+      // A small victory: a quick trumpet "ta-da!" (E5 to A5, a second trumpet a sixth below) over a bright strummed A chord.
+      trumpet(o, t, hz(7), 0.12, 0.05); trumpet(o, t, hz(-2), 0.12, 0.03);
+      trumpet(o, t + 0.14, hz(12), 0.55, 0.055); trumpet(o, t + 0.14, hz(4), 0.55, 0.035);
+      strum(o, t + 0.14, [-24, -17, -12, -8, -5, 0], 0.08, 0.015, 1.3);
       break;
     }
     case "bump": {
@@ -612,9 +620,9 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       // A mariachi flourish in A major, then a strummed A chord with the trumpets holding its top.
       // Two trumpets in sixths, the mariachi way: A-C#-E-A over C#-E-A-C#.
       const phrase: [number, number, number, number][] = [[0, -8, 0, 0.12], [4, -5, 0.13, 0.12], [7, 0, 0.26, 0.12], [12, 4, 0.39, 0.55]];
-      for (const [lead, second, at, len] of phrase) { trumpet(o, t + at, hz(lead), len, 0.13); trumpet(o, t + at, hz(second), len, 0.08); }
-      strum(o, t + 0.39, [-24, -17, -12, -8, -5, 0], 0.22, 0.02, 2.2); // A2 E3 A3 C#4 E4 A4
-      trumpet(o, t + 0.95, hz(7), 0.6, 0.1); trumpet(o, t + 0.95, hz(12), 0.6, 0.12);
+      for (const [lead, second, at, len] of phrase) { trumpet(o, t + at, hz(lead), len, 0.08); trumpet(o, t + at, hz(second), len, 0.05); }
+      strum(o, t + 0.39, [-24, -17, -12, -8, -5, 0], 0.14, 0.02, 2.2); // A2 E3 A3 C#4 E4 A4
+      trumpet(o, t + 0.95, hz(7), 0.6, 0.063); trumpet(o, t + 0.95, hz(12), 0.6, 0.075);
       break;
     }
   }
@@ -622,7 +630,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 1, caw: 1.1, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.7, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3, wipe: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, down: 1.6, smash: 1.4, strike: 1.3, twist: 3, wipe: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {

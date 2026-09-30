@@ -4156,8 +4156,6 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
       CRYO_FRIEND_IDS.forEach((id, slot) => void reader.read(id).then(art => { if (!abort.signal.aborted) cryoFriends.current[slot] = art; }, () => { /* the tube stays empty */ }));
     };
     let lastHoof = 0, lastStep = 0, tense = false, mood: MusicMood = "calm";
-    /** Outlaws already met in this country (for the showdown cue). */
-    const met = new Set<string>();
     /** When each kind of animal may next call, when each looping animal sound may next repeat, and the dragon breaths already roared. */
     const nextCall = new Map<number, number>(), nextLoop = new Map<string, number>(), roared = new Set<number>(), recentCalls: number[] = [];
     let cancelled = false, frame = 0, previous = 0, lastDebug = 0, shopLatch = false, terminalLatch = false, lastPoster = -1, side: "left" | "right" = "right", doorCooldown = 0;
@@ -4319,7 +4317,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
               if (hit?.kind === "outlaw") {
                 // A hacker drops on the second hit for certain, on the first half the time; down, it lies still and its wallet is up for grabs.
                 hit.hp -= 1;
-                if (hit.hp <= 0) { hit.hp = 0; hit.fallenAt = now; hit.walking = false; movement.stop(); setNote(""); dropOutlawKeepsake(hit); const caught = hit.name ?? "The hacker", variant = hit.variant; setPosters(value => value.some(poster => poster.name === caught) ? value : [...value, { name: caught, variant }]); setPrompt({ npcId: hit.id, name: hit.name ?? "The hacker", step: "list" }); }
+                if (hit.hp <= 0) { hit.hp = 0; hit.fallenAt = now; hit.walking = false; movement.stop(); setNote(""); dropOutlawKeepsake(hit); const caught = hit.name ?? "The hacker", variant = hit.variant; setPosters(value => value.some(poster => poster.name === caught) ? value : [...value, { name: caught, variant }]); setPrompt({ npcId: hit.id, name: hit.name ?? "The hacker", step: "list" }); audio.current?.play("down"); }
                 else setNote(`${hit.name ?? "The hacker"} is winged and staggers. ${hit.hp} more hit${hit.hp === 1 ? "" : "s"} to bring them down.`, "bad");
               }
               else if (hit) {
@@ -4718,10 +4716,6 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             if (npc.kind !== "outlaw") continue;
             const spot = interior ? (here(npc) ? npc.position : null) : outlawSpot(npc);
             if (!spot || distance(spot, state.position) > WARN_RANGE) continue;
-            // The first time a new outlaw comes this near (as its red arrow would appear): tumbleweed time, the showdown cue. Once per
-            // outlaw (Pumper and Dumper share theirs) in each fresh country.
-            const meeting = PAIR.includes(npc.name ?? "") ? "Pumper & Dumper" : npc.name ?? "";
-            if (active && !met.has(meeting)) { met.add(meeting); audio.current?.play("showdown"); }
             const at = toScreen(spot);
             if (!onScreen(at, 0)) drawWarningArrow(ctx, at, pulse);
           }
