@@ -2,12 +2,12 @@
 // Build: node games/rarefriend-outlaw/practice/build.mjs, then open practice/dist/sounds.html.
 import { createRoot } from "react-dom/client";
 import { useEffect, useRef, useState } from "react";
-import { createOutlawAudio, renderCue, renderMusic, renderSequence, wavBytes, SOUND_CUES, SOUND_IDS, type SoundId } from "../audio";
+import { createOutlawAudio, renderCue, renderMusic, renderSequence, wavBytes, SOUND_CUES, SOUND_IDS, type MusicMood, type SoundId } from "../audio";
 
 function SoundPreview() {
-  const audio = useRef(createOutlawAudio({ volume: 0.8 })), [music, setMusic] = useState(false), [tense, setTense] = useState(false);
+  const audio = useRef(createOutlawAudio({ volume: 0.8 })), [music, setMusic] = useState(false), [mood, setMood] = useState<MusicMood>("calm");
   useEffect(() => { audio.current.setMusic(music); }, [music]);
-  useEffect(() => { audio.current.setMusicMood(tense ? "tense" : "calm"); }, [tense]);
+  useEffect(() => { audio.current.setMusicMood(mood); }, [mood]);
   const [volume, setVolume] = useState(0.8), [muted, setMuted] = useState(false), [step, setStep] = useState(0), [note, setNote] = useState("");
   const play = async (id: SoundId, options?: { step?: number }) => {
     if (!(await audio.current.unlock())) { setNote("This browser cannot play Web Audio."); return; }
@@ -30,8 +30,9 @@ function SoundPreview() {
       <td><button type="button" className="small" onClick={() => void download(id)}>WAV</button></td>
     </tr>)}</tbody></table>
     <h2>Music</h2>
-    <p><button type="button" onClick={async () => { if (await audio.current.unlock()) setMusic(value => !value); }}>{music ? "Stop" : "Play"} "Lonesome Trail"</button> The country's ambience, looping (a whistle every third pass, a bell every fourth).{" "}
-      <button type="button" onClick={() => setTense(value => !value)}>{tense ? "Outlaw gone: calm" : "Outlaw near: Showdown Gallop"}</button></p>
+    <p><button type="button" onClick={async () => { if (await audio.current.unlock()) setMusic(value => !value); }}>{music ? "Stop" : "Play"} the music</button> It changes at the next bar:{" "}
+      {([["calm", "Lonesome Trail (walking)"], ["ride", "Trail Gallop (riding)"], ["tense", "The Standoff (outlaw near)"]] as const).map(([id, label]) =>
+        <button key={id} type="button" aria-pressed={mood === id} onClick={() => setMood(id)}>{mood === id ? "▶ " : ""}{label}</button>)}</p>
     <h2>In a sequence</h2>
     <p>
       <button type="button" onClick={() => { void play("flip", { step }); setStep(value => value + 1); }}>Flip, chain grows (note {Math.min(step, 15) + 1} of 16)</button>{" "}

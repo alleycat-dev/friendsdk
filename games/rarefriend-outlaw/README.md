@@ -1044,9 +1044,12 @@ reverb-soaked nylon-guitar arpeggio over the classic cadence Am - G - F - E at 6
 patterns per pass, slightly humanised), a soft drone on each root and a faint pad; every third pass a distant whistle sings a
 phrase over it, and every fourth a bell tolls far off. It sits well under the animals and cues (`MUSIC_LEVEL`) on its own bus, is
 laid down a second ahead by a look-ahead scheduler, rests (fading out) while a hardware wallet is being hacked, and fades back in
-afterwards. While a living outlaw is near (within 600 world units, calming again beyond 820) it switches at the next bar to
-**"Showdown Gallop"** (`scheduleTenseBar`): the same cadence at 112 beats a minute, a picked bass on the beat, short damped
-strums on the off-beats, a galloping shaker (ta-ta-TA on every beat) and, every other pass, a trumpet line. Every string is
+afterwards. Two more tracks in the same style take over at the next bar when the moment calls for it (`MusicMood`):
+**"Trail Gallop"** while you ride a horse (`scheduleRideBar`): the same cadence at 112 beats a minute, a picked bass on the beat,
+short damped strums on the off-beats, a galloping shaker (ta-ta-TA on every beat) under the hoofbeats and, every other pass, a
+trumpet line; and **"The Standoff"** while a living outlaw is near (within 600 world units, back beyond 820; it wins over the
+gallop), ominous at 92 beats a minute over Am - Bb - Am - E (the half-step up to Bb the menace), with a trembling tremolo guitar,
+a low heartbeat, a dark drone, a low, uneasy whistle every other pass and a bell tolling at the end of each. Every string is
 tuned exactly (the plucked-string synthesis is played back a touch faster or slower to land on pitch), and the whistle sings
 clean, separate notes that belong to their chords. Settings has **Music on**, separate from **Sound on**; the volume slider sets
 both.

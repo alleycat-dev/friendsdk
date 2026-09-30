@@ -617,16 +617,16 @@ function scheduleMusicBar(o: Out, t: number, bar: number, pass: number, pattern:
     bell.connect(bg); send(o, bg, 0.9); bell.start(t); bell.stop(t + ring + 0.1);
   }
 }
-/** "Showdown Gallop", the faster, driving version while an outlaw is near: the same cadence at 112 beats a minute, a bass on the
- * beat, short damped strums on the off-beats, a galloping shaker, and now and then a trumpet line. */
-const TENSE_BEAT = 60 / 112, TENSE_BAR = TENSE_BEAT * 4;
-/** The trumpet line over a tense pass: [bar, beat, note, beats long], semitones from A4. */
-const TENSE_RIFF: readonly (readonly [number, number, number, number])[] = [
+/** "Trail Gallop", the riding music: the same cadence at 112 beats a minute, a bass on the beat, short damped strums on the
+ * off-beats, a galloping shaker, and now and then a trumpet line. */
+const RIDE_BEAT = 60 / 112, RIDE_BAR = RIDE_BEAT * 4;
+/** The trumpet line over a riding pass: [bar, beat, note, beats long], semitones from A4. */
+const RIDE_RIFF: readonly (readonly [number, number, number, number])[] = [
   [0, 0, 0, 0.5], [0, 0.5, 3, 0.5], [0, 1, 7, 1.5], [1, 0, 5, 0.5], [1, 0.5, 2, 1.5], [2, 0, 3, 0.5], [2, 0.5, 0, 1.5],
   [3, 0, -1, 0.5], [3, 0.5, 2, 0.5], [3, 1, 7, 2],
 ];
-function scheduleTenseBar(o: Out, t: number, bar: number, pass: number) {
-  const [root, tones] = MUSIC_CHORDS[bar], beat = TENSE_BEAT;
+function scheduleRideBar(o: Out, t: number, bar: number, pass: number) {
+  const [root, tones] = MUSIC_CHORDS[bar], beat = RIDE_BEAT;
   // Bass: the root on beats 1 and 3, the fifth on 2 and 4, picked short.
   for (const [at, note] of [[0, root + 12], [1, root + 19], [2, root + 12], [3, root + 19]] as const) pluck(o, t + at * beat, hz(note), 0.2, 0.5, 0.985, 0.2);
   // Damped strums on the off-beats and a push into the next bar.
@@ -635,7 +635,46 @@ function scheduleTenseBar(o: Out, t: number, bar: number, pass: number) {
   for (let k = 0; k < 4; k++) for (const [sub, level] of [[0, 0.03], [1 / 3, 0.02], [2 / 3, 0.045]] as const)
     noiseBand(o, t + (k + sub) * beat, 0.05, "highpass", 5000, 7000, 0.8, level, 0.002, 0.05);
   // Every other pass, a trumpet line over it.
-  if (pass % 2 === 1) for (const [atBar, at, note, beats] of TENSE_RIFF) if (atBar === bar) trumpet(o, t + at * beat, hz(note), beats * beat * 0.9, 0.05);
+  if (pass % 2 === 1) for (const [atBar, at, note, beats] of RIDE_RIFF) if (atBar === bar) trumpet(o, t + at * beat, hz(note), beats * beat * 0.9, 0.05);
+}
+/** "The Standoff", while an outlaw is near: in the same style but ominous, at 92 beats a minute (quicker than Lonesome Trail, slower
+ * than the gallop), over Am - Bb - Am - E, the half-step up to Bb the menace of a standoff. A trembling tremolo guitar, a low
+ * heartbeat, a dark drone; a low, uneasy whistle every other pass and a bell tolling at the end of each. */
+const STANDOFF_BEAT = 60 / 92, STANDOFF_BAR = STANDOFF_BEAT * 4;
+const STANDOFF_CHORDS: readonly (readonly [number, readonly number[]])[] = [
+  [-24, [-12, -9, -5, 0]],  // Am: A2 | A3 C4 E4 A4
+  [-23, [-11, -7, -4, 1]],  // Bb: Bb2 | Bb3 D4 F4 Bb4
+  [-24, [-12, -9, -5, 0]],  // Am
+  [-29, [-17, -13, -10, -5]], // E: E2 | E3 G#3 B3 E4
+];
+/** The whistle over a standoff pass: [bar, beat, note, beats long], leaning on the half-step. */
+const STANDOFF_WHISTLE: readonly (readonly [number, number, number, number])[] = [[0, 0, 7, 3.5], [1, 0, 8, 3.5], [2, 0, 7, 2], [2, 2, 3, 1.5], [3, 0, -1, 3.5]];
+function scheduleStandoffBar(o: Out, t: number, bar: number, pass: number) {
+  const { ctx } = o, [root, tones] = STANDOFF_CHORDS[bar], beat = STANDOFF_BEAT;
+  // The dark drone on the root, and the bass struck at the top of the bar.
+  const drone = ctx.createOscillator(), dg = ctx.createGain();
+  drone.type = "triangle"; drone.frequency.value = hz(root);
+  dg.gain.setValueAtTime(0.0001, t); dg.gain.exponentialRampToValueAtTime(0.07, t + 0.3); dg.gain.setValueAtTime(0.07, t + STANDOFF_BAR - 0.3); dg.gain.exponentialRampToValueAtTime(0.0001, t + STANDOFF_BAR + 0.3);
+  drone.connect(dg); send(o, dg, 0.3); drone.start(t); drone.stop(t + STANDOFF_BAR + 0.4);
+  pluck(o, t, hz(root + 12), 0.2, 2.2, 0.996, 0.5);
+  // The heartbeat: lub-dub on beats 1 and 3.
+  for (const at of [0, 2]) { thud(o, t + at * beat, 52, 0.26); thud(o, t + (at + 0.32) * beat, 48, 0.17); }
+  // The tremolo: the chord's tones picked fast and soft, sixteenths, rising and falling through the chord.
+  const order = [1, 2, 3, 2];
+  for (let k = 0; k < 16; k++) pluck(o, t + k * beat / 4, hz(tones[order[k % 4]]), 0.035 + (k % 4 === 0 ? 0.015 : 0), 0.35, 0.99, 0.5);
+  if (pass % 2 === 1) for (const [atBar, at, note, beats] of STANDOFF_WHISTLE) if (atBar === bar) whistle(o, t + at * beat, hz(note), hz(note), beats * beat * 0.95, 0.045);
+  if (bar === 3) for (const [f, level, ring] of [[hz(-24), 0.035, 3.5], [hz(-24) * 2.4, 0.018, 2.5]] as const) {
+    const bell = ctx.createOscillator(), bg = ctx.createGain(), at = t + 2 * beat;
+    bell.type = "sine"; bell.frequency.value = f;
+    bg.gain.setValueAtTime(0.0001, at); bg.gain.exponentialRampToValueAtTime(level, at + 0.02); bg.gain.exponentialRampToValueAtTime(0.0001, at + ring);
+    bell.connect(bg); send(o, bg, 0.9); bell.start(at); bell.stop(at + ring + 0.1);
+  }
+}
+/** Which track plays: Lonesome Trail, Trail Gallop (riding) or The Standoff (an outlaw near). */
+export type MusicMood = "calm" | "ride" | "tense";
+const MOOD_BAR: Readonly<Record<MusicMood, number>> = { calm: MUSIC_BAR, ride: RIDE_BAR, tense: STANDOFF_BAR };
+function scheduleMoodBar(o: Out, mood: MusicMood, t: number, bar: number, pass: number, pattern: number) {
+  if (mood === "ride") scheduleRideBar(o, t, bar, pass); else if (mood === "tense") scheduleStandoffBar(o, t, bar, pass); else scheduleMusicBar(o, t, bar, pass, pattern);
 }
 /** The music's level against the sound effects: well under the animals and cues. */
 const MUSIC_LEVEL = 0.35;
@@ -650,15 +689,16 @@ export type OutlawAudio = {
   /** Music on or off (Settings), and whether the moment allows it (off during a hack): it fades in and out. */
   setMusic(on: boolean): void;
   setMusicAllowed(allowed: boolean): void;
-  /** "tense" while an outlaw is near: the music switches to its faster version at the next bar, and back. */
-  setMusicMood(mood: "calm" | "tense"): void;
+  /** The track: "calm" (Lonesome Trail), "ride" (Trail Gallop, on a horse) or "tense" (The Standoff, an outlaw near); it changes at
+   * the next bar. */
+  setMusicMood(mood: MusicMood): void;
   dispose(): void;
 };
 export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawAudio {
   let ctx: AudioContext | null = null, master: GainNode | null = null, out: Out | null = null;
   let level = volume, silent = muted, disposed = false;
   let musicMaster: GainNode | null = null, musicOut: Out | null = null, musicOn = true, musicAllowed = true, timer = 0, nextBar = 0, bar = 0, pass = 0, pattern = 0;
-  let mood: "calm" | "tense" = "calm", playing: "calm" | "tense" = "calm";
+  let mood: MusicMood = "calm", playing: MusicMood = "calm";
   const audible = () => musicOn && musicAllowed && !disposed;
   const apply = () => {
     if (master && ctx) master.gain.setTargetAtTime(silent ? 0 : level * 0.8, ctx.currentTime, 0.02);
@@ -674,8 +714,8 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
       // A change of mood takes over at the next bar, picking up the cadence where it is.
       playing = mood;
       if (bar === 0) pattern = Math.floor(Math.random() * MUSIC_PATTERNS.length);
-      if (playing === "tense") scheduleTenseBar(musicOut, nextBar, bar, pass); else scheduleMusicBar(musicOut, nextBar, bar, pass, pattern);
-      nextBar += playing === "tense" ? TENSE_BAR : MUSIC_BAR; bar = (bar + 1) % MUSIC_CHORDS.length; if (bar === 0) pass++;
+      scheduleMoodBar(musicOut, playing, nextBar, bar, pass, pattern);
+      nextBar += MOOD_BAR[playing]; bar = (bar + 1) % MUSIC_CHORDS.length; if (bar === 0) pass++;
     }
   };
   const onHidden = () => { if (document.hidden && ctx?.state === "running") void ctx.suspend(); else if (!document.hidden && ctx?.state === "suspended" && !silent) void ctx.resume(); };
@@ -724,15 +764,13 @@ export async function renderSequence(steps: readonly { id: SoundId; at: number; 
   return ctx.startRendering();
 }
 /** Render `passes` loops of the ambience offline, for listening without the game. */
-export async function renderMusic(passes = 4, sampleRate = 44100, tense = false): Promise<AudioBuffer> {
-  const seconds = passes * MUSIC_CHORDS.length * (tense ? TENSE_BAR : MUSIC_BAR) + 3;
+export async function renderMusic(passes = 4, sampleRate = 44100, mood: MusicMood = "calm"): Promise<AudioBuffer> {
+  const seconds = passes * MUSIC_CHORDS.length * MOOD_BAR[mood] + 3;
   const ctx = new OfflineAudioContext(2, Math.ceil(seconds * sampleRate), sampleRate), master = ctx.createGain(); master.gain.value = 0.56 * MUSIC_LEVEL;
   const out = outputChain(ctx, ctx.destination, master);
   for (let pass = 0, t = 0.05; pass < passes; pass++) {
     const pattern = Math.floor(Math.random() * MUSIC_PATTERNS.length);
-    for (let bar = 0; bar < MUSIC_CHORDS.length; bar++, t += tense ? TENSE_BAR : MUSIC_BAR) {
-      if (tense) scheduleTenseBar(out, t, bar, pass); else scheduleMusicBar(out, t, bar, pass, pattern);
-    }
+    for (let bar = 0; bar < MUSIC_CHORDS.length; bar++, t += MOOD_BAR[mood]) scheduleMoodBar(out, mood, t, bar, pass, pattern);
   }
   return ctx.startRendering();
 }

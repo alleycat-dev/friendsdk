@@ -13,7 +13,7 @@ import { rollKeepsake, PERK_TEXT } from "./loot";
 import { RewardsFrame, RARITY_COLOUR, type LootRarity, type RewardItem } from "./rewards";
 import { TROPHIES, drawTrophy } from "./trophies";
 import { PLAYTEST } from "./playtest";
-import { createOutlawAudio, type SoundId } from "./audio";
+import { createOutlawAudio, type MusicMood, type SoundId } from "./audio";
 import { COSMETICS, COSMETIC_IDS, SLOT_ACTION, cosmeticForKeepsake, drawGearBehind, drawGearFront, drawLiquidatorGun, drawDiamondCleaver, drawPet, diplomaBitmap, type CosmeticId, type Gear } from "./cosmetics";
 import { GameMenu } from "@rarefriends/friendsdk/frame";
 import { RF, maximumPrize, type GameSnapshot } from "@rarefriends/friendsdk/game";
@@ -688,7 +688,7 @@ const MAX_CALLS_PER_SECOND = 5;
 const HEAR_RANGE = 520; // world units: animals further away are not heard
 /** Time between footsteps while walking (not riding). */
 const STEP_MS = 330;
-/** The music turns tense ("Showdown Gallop") when a living outlaw comes this near, and calm again once it is further than MUSIC_CALM. */
+/** The music turns to The Standoff when a living outlaw comes this near, and back once it is further than MUSIC_CALM. */
 const MUSIC_TENSE = 600, MUSIC_CALM = 820;
 /** Time between a riding horse's galloping strides (each stride is four hoofbeats, the `hoof` cue). */
 const HOOF_STRIDE_MS = 520;
@@ -4125,7 +4125,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
       const reader = createFriendReader();
       CRYO_FRIEND_IDS.forEach((id, slot) => void reader.read(id).then(art => { if (!abort.signal.aborted) cryoFriends.current[slot] = art; }, () => { /* the tube stays empty */ }));
     };
-    let lastHoof = 0, lastStep = 0, tense = false;
+    let lastHoof = 0, lastStep = 0, tense = false, mood: MusicMood = "calm";
     /** Outlaws already met in this country (for the showdown cue). */
     const met = new Set<string>();
     /** When each kind of animal may next call, when each looping animal sound may next repeat, and the dragon breaths already roared. */
@@ -4734,14 +4734,17 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           }
           // Soft footsteps while you walk on foot (the horse's hoofbeats take over while riding).
           if (active && state.walking && !ridden() && now - lastStep >= STEP_MS) { lastStep = now; audio.current?.play("step"); }
-          // The music quickens while a living outlaw is near (in the country, or in the building you are in), and calms once it is gone.
+          // The music: The Standoff while a living outlaw is near (in the country, or in the building you are in), Trail Gallop while
+          // riding, Lonesome Trail otherwise.
           {
             const near = Math.min(Infinity, ...npcs.current.filter(npc => npc.kind === "outlaw" && !npc.fallenAt).map(npc => {
               const spot = interior ? (here(npc) ? npc.position : null) : outlawSpot(npc);
               return spot ? distance(spot, state.position) : Infinity;
             }));
-            const next = tense ? near <= MUSIC_CALM : near <= MUSIC_TENSE;
-            if (next !== tense) { tense = next; audio.current?.setMusicMood(tense ? "tense" : "calm"); }
+            tense = tense ? near <= MUSIC_CALM : near <= MUSIC_TENSE;
+            // An outlaw near wins (The Standoff); otherwise riding a horse plays Trail Gallop, and walking Lonesome Trail.
+            const next = tense ? "tense" : ridden() ? "ride" : "calm";
+            if (next !== mood) { mood = next; audio.current?.setMusicMood(mood); }
           }
           // A downed outlaw left lying gets back up after OUTLAW_DOWN_MS (unless its dialog or wallet is open), but never once you
           // have looted it (impounded anything); walking into one while it is down reopens its belongings.
