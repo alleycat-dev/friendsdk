@@ -682,7 +682,7 @@ function afterMove(state: WalletState, index: number): WalletState {
   // hold is sold for you, or, with nothing to sell, the trace pays for a top-up.
   if (tier.twist === "margincall" && s.grit > 0) {
     // The Flash Crash: the move just made has entered the crash (the lettering fires once), or ended it.
-    if (flashCrashing(s) && flashLeft(s) === FLASH.lasts) { s.text += " FLASH CRASH: Power 1, strike-backs and bites doubled for two moves."; fire(s, "crash", "FLASH CRASH!!!", "Power 1, hits and bites doubled: 2 moves"); }
+    if (flashCrashing(s) && flashLeft(s) === FLASH.lasts) { s.text += " FLASH CRASH: Power 1, strike-backs and bites doubled for two moves."; fire(s, "crash", "FLASH CRASH!!!", "For the next two moves, Power is set to 1 and hit and bite damage is doubled"); }
     else if (crashed && !flashCrashing(s)) s.text += " The market recovers.";
     if (equityOf(s) <= EQUITY.margin && s.sales < EQUITY.sales) fire(s, "margin", "MARGIN CALL!!!", "Right-click a program to sell it for Equity");
     if (equityOf(s) > EQUITY.forced) s.forcedArmed = true;
@@ -697,7 +697,7 @@ function afterMove(state: WalletState, index: number): WalletState {
         const gain = Math.min(equityPoints(tier, EQUITY.penaltyGain), tier.grit - s.grit);
         s.trace += EQUITY.penaltyTrace; s.grit += gain;
         s.text += ` FORCED SELLING: nothing to sell; +${EQUITY.penaltyTrace} trace for +${Math.round(gain / tier.grit * 100)}% Equity.`;
-        fire(s, "forced", "FORCED SELLING!!!", `No programs: +${EQUITY.penaltyTrace} trace for Equity`);
+        fire(s, "forced", "FORCED SELLING!!!", `No programs to sell: +${EQUITY.penaltyTrace} Trace for Equity`);
       }
       if (equityOf(s) > EQUITY.forced) s.forcedArmed = true;
     }
@@ -721,7 +721,7 @@ function afterMove(state: WalletState, index: number): WalletState {
       if (s.liquidator === s.probe) {
         s = { ...rugPull(s), pulled: state.pulled, liquidator: null, seizures: s.seizures + 1, grit: Math.min(s.grit, equityPoints(tier, EQUITY.liquidated)) };
         s.text += ` LIQUIDATED: The Liquidator closes your position. Equity ${Math.round(EQUITY.liquidated * 100)}%, and every uncovered tile but yours is seized.`;
-        fire(s, "liquidated", "LIQUIDATED!!!", `Equity ${Math.round(EQUITY.liquidated * 100)}%, your uncovered tiles seized`);
+        fire(s, "liquidated", "LIQUIDATED!!!", `Equity at ${Math.round(EQUITY.liquidated * 100)}%, your uncovered tiles are seized`);
       }
     }
   }

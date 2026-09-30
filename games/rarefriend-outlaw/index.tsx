@@ -3563,7 +3563,10 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
         ctx.lineWidth = 10; ctx.strokeStyle = "#000"; ctx.strokeText(struck.label, 0, 24); ctx.fillStyle = "#e0321f"; ctx.fillText(struck.label, 0, 24);
         // What the twist just did, in a line under the shout (PUMPED!!!: your Power is up).
         if (struck.detail) {
+          // A long line shrinks to fit the board's width (the shout's own scale included).
           ctx.font = "bold 24px ui-monospace, monospace"; ctx.lineWidth = 6;
+          const room = 880 / (pop * fit), wide = ctx.measureText(struck.detail).width;
+          if (wide > room) { ctx.font = `bold ${Math.floor(24 * room / wide)}px ui-monospace, monospace`; ctx.lineWidth = 5; }
           ctx.strokeText(struck.detail, 0, 70); ctx.fillStyle = "#fff"; ctx.fillText(struck.detail, 0, 70);
         }
         ctx.restore();
