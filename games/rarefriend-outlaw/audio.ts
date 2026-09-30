@@ -735,11 +735,54 @@ function scheduleStandoffBar(o: Out, t: number, bar: number, pass: number) {
     bell.connect(bg); send(o, bg, 0.9); bell.start(at); bell.stop(at + ring + 0.1);
   }
 }
-/** Which track plays: Lonesome Trail, Trail Gallop (riding) or The Standoff (an outlaw near). */
-export type MusicMood = "calm" | "ride" | "tense";
-const MOOD_BAR: Readonly<Record<MusicMood, number>> = { calm: MUSIC_BAR, ride: RIDE_BAR, tense: STANDOFF_BAR };
+/** "Trace", the hacking game's music: digital and slightly anxious, at 104 beats a minute over Am - F - Dm - E. A pulse-wave
+ * arpeggio streams through each chord in sixteenths, a sub-bass pulses on the eighths, a soft tick keeps time like the trace
+ * counting, a faintly detuned pad sits uneasily under it, little glitch blips flicker at random, and every fourth bar a rising
+ * filter sweep builds. */
+const HACK_BEAT = 60 / 104, HACK_BAR = HACK_BEAT * 4;
+const HACK_CHORDS: readonly (readonly [number, readonly number[]])[] = [
+  [-24, [0, 3, 7, 12]],  // Am: A4 C5 E5 A5 over A2
+  [-28, [-4, 0, 3, 8]],  // F:  F4 A4 C5 F5 over F2
+  [-31, [-7, -4, 0, 5]], // Dm: D4 F4 A4 D5 over D2
+  [-29, [-5, -1, 2, 7]], // E:  E4 G#4 B4 E5 over E2
+];
+/** The arpeggio's path through a chord's four tones over sixteen sixteenths. */
+const HACK_ARP = [0, 1, 2, 3, 2, 1, 0, 2, 1, 3, 2, 1, 3, 2, 1, 2];
+function pulse(o: Out, t: number, freq: number, seconds: number, gain: number, cutoff: number, type: OscillatorType = "square", reverb = 0.15) {
+  const { ctx } = o, osc = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+  osc.type = type; osc.frequency.value = freq; lp.type = "lowpass"; lp.frequency.value = cutoff; lp.Q.value = 2;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+  osc.connect(lp).connect(g); send(o, g, reverb); osc.start(t); osc.stop(t + seconds + 0.02);
+}
+function scheduleHackBar(o: Out, t: number, bar: number, pass: number) {
+  const { ctx } = o, [root, tones] = HACK_CHORDS[bar], beat = HACK_BEAT, sixteenth = beat / 4;
+  // The stream: sixteenths through the chord, brighter on the beat.
+  HACK_ARP.forEach((which, k) => pulse(o, t + k * sixteenth, hz(tones[which]), 0.09, k % 4 === 0 ? 0.1 : 0.065, k % 4 === 0 ? 3200 : 2200));
+  // The sub-bass on every eighth, the root with an octave jump on the off-beats.
+  for (let k = 0; k < 8; k++) pulse(o, t + k * beat / 2, hz(root + (k % 2 ? 12 : 0)), 0.16, k % 2 ? 0.13 : 0.2, 700, "triangle", 0.05);
+  // The tick: soft and dry on every eighth, a little stronger off the beat, like a counter ticking over.
+  for (let k = 0; k < 8; k++) noiseBand(o, t + k * beat / 2, 0.025, "highpass", 6500, 8000, 1, k % 2 ? 0.045 : 0.028, 0.001, 0);
+  // The uneasy pad: two sawtooths a few cents apart that drift against each other.
+  for (const [detune, tone] of [[-9, tones[0]], [11, tones[2]]] as const) {
+    const pad = ctx.createOscillator(), lp = ctx.createBiquadFilter(), pg = ctx.createGain();
+    pad.type = "sawtooth"; pad.frequency.value = hz(tone - 12); pad.detune.setValueAtTime(detune, t); pad.detune.linearRampToValueAtTime(-detune, t + HACK_BAR);
+    lp.type = "lowpass"; lp.frequency.value = 900;
+    pg.gain.setValueAtTime(0.0001, t); pg.gain.exponentialRampToValueAtTime(0.03, t + 0.8); pg.gain.setValueAtTime(0.03, t + HACK_BAR - 0.4); pg.gain.exponentialRampToValueAtTime(0.0001, t + HACK_BAR + 0.3);
+    pad.connect(lp).connect(pg); send(o, pg, 0.5); pad.start(t); pad.stop(t + HACK_BAR + 0.4);
+  }
+  // Glitches: two or three blips at random sixteenths, high and short.
+  const glitches = 2 + Math.floor(Math.random() * 2);
+  for (let k = 0; k < glitches; k++) pulse(o, t + Math.floor(Math.random() * 16) * sixteenth, 1400 + Math.random() * 2400, 0.03, 0.03, 6000, Math.random() < 0.5 ? "square" : "sawtooth", 0.3);
+  // Every fourth bar a sweep rises into the next pass.
+  if (bar === 3) noiseBand(o, t, HACK_BAR, "bandpass", 300, 5000, 3, 0.045, HACK_BAR * 0.8, 0.3);
+  void pass;
+}
+/** Which track plays: Lonesome Trail, Trail Gallop (riding), The Standoff (an outlaw near) or Trace (the hacking game). */
+export type MusicMood = "calm" | "ride" | "tense" | "hack";
+const MOOD_BAR: Readonly<Record<MusicMood, number>> = { calm: MUSIC_BAR, ride: RIDE_BAR, tense: STANDOFF_BAR, hack: HACK_BAR };
 function scheduleMoodBar(o: Out, mood: MusicMood, t: number, bar: number, pass: number, pattern: number) {
-  if (mood === "ride") scheduleRideBar(o, t, bar, pass); else if (mood === "tense") scheduleStandoffBar(o, t, bar, pass); else scheduleMusicBar(o, t, bar, pass, pattern);
+  if (mood === "ride") scheduleRideBar(o, t, bar, pass); else if (mood === "tense") scheduleStandoffBar(o, t, bar, pass);
+  else if (mood === "hack") scheduleHackBar(o, t, bar, pass); else scheduleMusicBar(o, t, bar, pass, pattern);
 }
 /** The music's level against the sound effects at music volume 0.5 (the slider's middle): well under the animals and cues. */
 const MUSIC_LEVEL = 0.35;
@@ -754,8 +797,8 @@ export type OutlawAudio = {
   /** Music on or off (Settings), and whether the moment allows it (off during a hack): it fades in and out. */
   setMusic(on: boolean): void;
   setMusicAllowed(allowed: boolean): void;
-  /** The track: "calm" (Lonesome Trail), "ride" (Trail Gallop, on a horse) or "tense" (The Standoff, an outlaw near); it changes at
-   * the next bar. */
+  /** The track: "calm" (Lonesome Trail), "ride" (Trail Gallop, on a horse), "tense" (The Standoff, an outlaw near) or "hack" (Trace,
+   * the hacking game); it changes at the next bar. */
   setMusicMood(mood: MusicMood): void;
   /** The music's own volume (0-1), on top of the overall volume. */
   setMusicVolume(volume: number): void;

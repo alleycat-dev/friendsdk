@@ -34,7 +34,7 @@ function SoundPreview() {
       <button key={species} type="button" onClick={() => void play("wail", { species } as { step?: number })}>{species}</button>)}</p>
     <h2>Music</h2>
     <p><button type="button" onClick={async () => { if (await audio.current.unlock()) setMusic(value => !value); }}>{music ? "Stop" : "Play"} the music</button> It changes at the next bar:{" "}
-      {([["calm", "Lonesome Trail (walking)"], ["ride", "Trail Gallop (riding)"], ["tense", "The Standoff (outlaw near)"]] as const).map(([id, label]) =>
+      {([["calm", "Lonesome Trail (walking)"], ["ride", "Trail Gallop (riding)"], ["tense", "The Standoff (outlaw near)"], ["hack", "Trace (hacking game)"]] as const).map(([id, label]) =>
         <button key={id} type="button" aria-pressed={mood === id} onClick={() => setMood(id)}>{mood === id ? "▶ " : ""}{label}</button>)}</p>
     <h2>In a sequence</h2>
     <p>

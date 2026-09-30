@@ -3896,8 +3896,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   // Music volume 0.5 is the music's designed level; it starts a little under that (0.37, about 2.5 dB quieter).
   const [soundOn, setSoundOn] = useState(true), [soundVolume, setSoundVolume] = useState(0.7), [musicOn, setMusicOn] = useState(true), [musicVolume, setMusicVolume] = useState(0.37);
   useEffect(() => { audio.current?.setMuted(!soundOn); audio.current?.setVolume(soundVolume); audio.current?.setMusic(musicOn); audio.current?.setMusicVolume(musicVolume); }, [soundOn, soundVolume, musicOn, musicVolume]);
-  // The country's music rests while a hardware wallet is being hacked, and fades back in afterwards.
-  useEffect(() => { audio.current?.setMusicAllowed(!wallet); }, [wallet]);
+  // A hardware wallet's board plays Trace; closing it hands back to the country's music (the frame loop picks the mood).
+  useEffect(() => { if (wallet) audio.current?.setMusicMood("hack"); }, [wallet]);
   useEffect(() => () => audio.current?.dispose(), []);
   // The hacking board's cues come from comparing each new board state with the last: a tile uncovered plucks the note of the chain's
   // size, hitting a defender smashes brick (its instant strike-back included), other lost Integrity is a thud, a new twist event
@@ -4753,7 +4753,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             }));
             tense = tense ? near <= MUSIC_CALM : near <= MUSIC_TENSE;
             // An outlaw near wins (The Standoff); otherwise riding a horse plays Trail Gallop, and walking Lonesome Trail.
-            const next = tense ? "tense" : ridden() ? "ride" : "calm";
+            const next = live.current.wallet ? "hack" : tense ? "tense" : ridden() ? "ride" : "calm";
             if (next !== mood) { mood = next; audio.current?.setMusicMood(mood); }
           }
           // A downed outlaw left lying gets back up after OUTLAW_DOWN_MS (unless its dialog or wallet is open), but never once you
@@ -5732,7 +5732,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           <label className="outlaw-volume">Music volume <input type="range" min={0} max={0.65} step={0.01} value={musicVolume} disabled={!musicOn}
             onChange={event => setMusicVolume(Number(event.target.value))} aria-label="Music volume" /></label>
           <p>Spaghetti-Western sound effects and a soft Western ambience out in the country ("Lonesome Trail", quiet enough to hear the
-            animals; it rests during hacks), all made in code. Sound and music start after your first click, tap or key press, and stop
+            animals, and its faster and darker takes; the hacking game has its own digital track), all made in code. Sound and music start after your first click, tap or key press, and stop
             while the game's tab is hidden. Volume sets everything; Music volume sets the music against the sounds.</p>
           <h3>Credits</h3>
           <p><strong>Alley Cat</strong> · Lead Developer</p>

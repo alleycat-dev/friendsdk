@@ -46,7 +46,7 @@ const cues = await page.evaluate(async () => {
     let peak = 0, sum = 0;
     for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
     rendered.push({ id: "music-lonesome-trail", seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) }); }
-  for (const [mood, name] of [["ride", "trail-gallop"], ["tense", "the-standoff"]]) { const buffer = await window.outlawSounds.renderMusic(4, 44100, mood);
+  for (const [mood, name] of [["ride", "trail-gallop"], ["tense", "the-standoff"], ["hack", "trace"]]) { const buffer = await window.outlawSounds.renderMusic(4, 44100, mood);
     let peak = 0, sum = 0;
     for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
     rendered.push({ id: `music-${name}`, seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) }); }

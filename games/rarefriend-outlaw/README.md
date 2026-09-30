@@ -1047,13 +1047,15 @@ voices with numbers, up to three: more moving snakes, more butterflies, and one 
 reverb-soaked nylon-guitar arpeggio over the classic cadence Am - G - F - E at 66 beats a minute (one of four sparse picking
 patterns per pass, slightly humanised), a soft drone on each root and a faint pad; every third pass a distant whistle sings a
 phrase over it, and every fourth a bell tolls far off. It sits well under the animals and cues (`MUSIC_LEVEL`) on its own bus, is
-laid down a second ahead by a look-ahead scheduler, rests (fading out) while a hardware wallet is being hacked, and fades back in
-afterwards. Two more tracks in the same style take over at the next bar when the moment calls for it (`MusicMood`):
+laid down a second ahead by a look-ahead scheduler, and hands over to **"Trace"** while a hardware wallet is being hacked. Two more tracks in the same style take over at the next bar when the moment calls for it (`MusicMood`):
 **"Trail Gallop"** while you ride a horse (`scheduleRideBar`): the same cadence at 112 beats a minute, a picked bass on the beat,
 short damped strums on the off-beats, a galloping shaker (ta-ta-TA on every beat) under the hoofbeats and, every other pass, a
 trumpet line; and **"The Standoff"** while a living outlaw is near (within 600 world units, back beyond 820; it wins over the
 gallop), ominous at 92 beats a minute over Am - Bb - Am - E (the half-step up to Bb the menace), with a trembling tremolo guitar,
-a low heartbeat, a dark drone, a low, uneasy whistle every other pass and a bell tolling at the end of each. Every string is
+a low heartbeat, a dark drone, a low, uneasy whistle every other pass and a bell tolling at the end of each. The hacking game has its own track, **"Trace"** (`scheduleHackBar`):
+digital and slightly anxious at 104 beats a minute over Am - F - Dm - E, a pulse-wave arpeggio streaming through each chord in
+sixteenths, a sub-bass pulsing on the eighths, a soft tick like the trace counting, a faintly detuned pad drifting uneasily, little
+glitch blips at random and, every fourth bar, a rising filter sweep; a little under the country tracks, below the board's own cues. Every string is
 tuned exactly (the plucked-string synthesis is played back a touch faster or slower to land on pitch), and the whistle sings
 clean, separate notes that belong to their chords. Settings has **Music on**, separate from **Sound on**, a **Volume** slider for everything
 and a **Music volume** slider for the music against the sounds (starting a little under its designed level).
