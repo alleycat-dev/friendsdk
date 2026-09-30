@@ -5,7 +5,9 @@
 // echo. Like the SDK's sound kit: creating the player makes no AudioContext; `unlock()` must be called from a player gesture;
 // muted, locked or hidden players drop cues instead of queueing them.
 
-export const SOUND_IDS = ["laser", "hoof", "bump", "showdown", "flip", "strike", "twist", "win"] as const;
+export const SOUND_IDS = ["laser", "hoof", "bump", "showdown", "flip", "strike", "twist", "win",
+  "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
+  "roar", "growl", "yip", "dragon"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
 /** What each cue is for, for the preview page and the README. */
 export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
@@ -17,6 +19,25 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   strike: "Losing Integrity in a hack (a strike-back, a bomb, a bite): an anvil thud under a low twang",
   twist: "A twist striking (RUGPULL!!!): whip crack, a falling whistle and a trembling guitar chord",
   win: "A cracked wallet: a mariachi trumpet flourish over a strummed chord",
+  meow: "Cat: a meow, rising then falling (mi-aow)",
+  bark: "Dog: two gruff barks",
+  moo: "Cow: a long, low moo",
+  oink: "Pig: a few nasal grunts",
+  crow: "Rooster: cock-a-doodle-doo",
+  cluck: "Hen: bok, bok, bok, ba-gawk",
+  chirp: "Bird: a quick burst of tweets",
+  ribbit: "Frog: rib-bit",
+  snort: "Deer: a sharp alarm snort",
+  thump: "Rabbit: a hind-foot thump and a sniff",
+  boom: "Ostrich: its deep, booming call",
+  hiss: "Snake: a long hiss",
+  slither: "Snake: scales rustling over dry ground while it moves (repeats)",
+  flutter: "Butterfly: the faintest flutter of wings (repeats)",
+  buzz: "Bees: a buzz, louder the nearer the swarm (repeats)",
+  roar: "Lion: a rumbling roar",
+  growl: "Bear: a deep growl",
+  yip: "Golden Fox: a high, raspy yelp",
+  dragon: "Dragon: a huge roar and a whoosh of fire",
 };
 
 type Out = { ctx: BaseAudioContext; dry: AudioNode; wet: AudioNode };
@@ -121,6 +142,47 @@ function thud(o: Out, t: number, freq: number, gain = 0.3) {
   dg.gain.setValueAtTime(gain * 0.6, t); dg.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
   dirt.connect(lp).connect(dg); send(o, dg, 0); dirt.start(t); dirt.stop(t + 0.08);
 }
+/** An animal voice: a buzzing source (sawtooth, and breath noise) shaped by vowel-like formant filters, the way a throat, mouth or
+ * beak shapes it. `pitch` and each formant's frequency are [seconds, Hz] points, glided between; `rasp` shakes the level (a growl or
+ * a croak) at `raspRate` times a second. */
+type Voice = { seconds: number; pitch: readonly (readonly [number, number])[]; formants: readonly { f: readonly (readonly [number, number])[]; q: number; gain: number }[];
+  gain: number; wave?: OscillatorType; breath?: number; rasp?: number; raspRate?: number; attack?: number; release?: number; reverb?: number };
+function voice(o: Out, t: number, v: Voice) {
+  const { ctx } = o, end = t + v.seconds, source = ctx.createGain(), env = ctx.createGain();
+  const osc = ctx.createOscillator(); osc.type = v.wave ?? "sawtooth";
+  const glide = (param: AudioParam, points: readonly (readonly [number, number])[]) => {
+    param.setValueAtTime(points[0][1], t); for (const [at, value] of points.slice(1)) param.linearRampToValueAtTime(value, t + at);
+  };
+  glide(osc.frequency, v.pitch);
+  const tone = ctx.createGain(); tone.gain.value = 1 - (v.breath ?? 0); osc.connect(tone).connect(source);
+  const air = noiseSource(ctx, v.seconds + 0.05);
+  if (v.breath) { const ag = ctx.createGain(); ag.gain.value = v.breath; air.connect(ag).connect(source); }
+  for (const formant of v.formants) {
+    const band = ctx.createBiquadFilter(), fg = ctx.createGain();
+    band.type = "bandpass"; band.Q.value = formant.q; glide(band.frequency, formant.f); fg.gain.value = formant.gain;
+    source.connect(band).connect(fg).connect(env);
+  }
+  const attack = v.attack ?? 0.03, release = v.release ?? 0.12;
+  env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(v.gain, t + attack);
+  env.gain.setValueAtTime(v.gain, Math.max(t + attack, end - release)); env.gain.exponentialRampToValueAtTime(0.0001, end);
+  let tail: AudioNode = env;
+  if (v.rasp) {
+    const shake = ctx.createGain(), lfo = ctx.createOscillator(), depth = ctx.createGain();
+    shake.gain.value = 1 - v.rasp / 2; lfo.frequency.value = v.raspRate ?? 28; depth.gain.value = v.rasp / 2;
+    lfo.connect(depth).connect(shake.gain); env.connect(shake); tail = shake; lfo.start(t); lfo.stop(end + 0.05);
+  }
+  send(o, tail, v.reverb ?? 0.2);
+  osc.start(t); osc.stop(end + 0.05); air.start(t); air.stop(end + 0.05);
+}
+/** A band of filtered noise with a level envelope: the building block of hisses, rustles, buzzes and fire. */
+function noiseBand(o: Out, t: number, seconds: number, type: BiquadFilterType, from: number, to: number, q: number, gain: number, attack = 0.02, reverb = 0.15) {
+  const { ctx } = o, n = noiseSource(ctx, seconds + 0.05), filter = ctx.createBiquadFilter(), g = ctx.createGain();
+  filter.type = type; filter.Q.value = q; filter.frequency.setValueAtTime(from, t); filter.frequency.exponentialRampToValueAtTime(to, t + seconds);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + attack); g.gain.setValueAtTime(gain, t + Math.max(attack, seconds * 0.6));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+  n.connect(filter).connect(g); send(o, g, reverb); n.start(t); n.stop(t + seconds + 0.05);
+  return g;
+}
 /** The mariachi trumpet: a bright sawtooth through a swelling low-pass, with a vibrato that arrives late on long notes. */
 function trumpet(o: Out, t: number, freq: number, seconds: number, gain = 0.16) {
   const { ctx } = o, a = ctx.createOscillator(), b = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -135,6 +197,14 @@ function trumpet(o: Out, t: number, freq: number, seconds: number, gain = 0.16) 
   a.connect(lp); b.connect(lp); lp.connect(g); send(o, g, 0.35);
   for (const node of [a, b, lfo]) { node.start(t); node.stop(t + seconds + 0.02); }
 }
+/** A cue placed in the world: its own level and stereo position in front of the buses (the reverb stays centred, like a room). */
+function placed(o: Out, t: number, { gain = 1, pan = 0 }: CueOptions): Out {
+  if (gain === 1 && pan === 0) return o;
+  const { ctx } = o, level = ctx.createGain(), wet = ctx.createGain(), panner = ctx.createStereoPanner();
+  level.gain.setValueAtTime(gain, t); wet.gain.setValueAtTime(gain, t); panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), t);
+  level.connect(panner).connect(o.dry); wet.connect(o.wet);
+  return { ctx, dry: level, wet };
+}
 /** Route a voice to the dry bus and, by `amount`, to the spring reverb. */
 function send(o: Out, node: AudioNode, amount: number) {
   node.connect(o.dry);
@@ -145,9 +215,11 @@ function send(o: Out, node: AudioNode, amount: number) {
 // Cues
 // ---------------------------------------------------------------------------------------------------------------------------
 
-export type CueOptions = { step?: number };
-function cue(o: Out, id: SoundId, t: number, options: CueOptions = {}) {
-  const { ctx } = o;
+/** `step`: which note of a scale; `gain` (0-1) and `pan` (-1 left to 1 right) place a sound in the world (an animal's distance and
+ * side of the screen). */
+export type CueOptions = { step?: number; gain?: number; pan?: number };
+function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
+  const o = placed(base, t, options), { ctx } = o;
   switch (id) {
     case "laser": {
       // The pew: a square wave diving from high to low...
@@ -203,6 +275,115 @@ function cue(o: Out, id: SoundId, t: number, options: CueOptions = {}) {
       // Under it, the guitar's low E trembling, then left to ring.
       for (let k = 0; k < 8; k++) pluck(o, t + 1.2 + k * 0.12, hz(-29), 0.2 * (1 - k * 0.08), 0.4, 0.99, 0.4);
       pluck(o, t + 2.92, hz(-29), 0.3, 1.7, 0.997, 0.5);
+      break;
+    }
+    // ----- Animals: each as it sounds in life -----
+    case "meow": {
+      voice(o, t, { seconds: 0.75, gain: 0.19, breath: 0.1, pitch: [[0, 560], [0.25, 820], [0.55, 700], [0.75, 480]],
+        formants: [{ f: [[0, 350], [0.3, 900], [0.75, 450]], q: 5, gain: 1 }, { f: [[0, 2300], [0.3, 1500], [0.75, 900]], q: 7, gain: 0.7 }, { f: [[0, 3200], [0.75, 2600]], q: 8, gain: 0.3 }] });
+      break;
+    }
+    case "bark": {
+      for (const at of [0, 0.28]) voice(o, t + at, { seconds: 0.2, gain: 0.34, breath: 0.45, attack: 0.008, release: 0.1, pitch: [[0, 290], [0.2, 190]],
+        formants: [{ f: [[0, 750], [0.2, 550]], q: 3, gain: 1 }, { f: [[0, 1600], [0.2, 1300]], q: 5, gain: 0.6 }, { f: [[0, 2700], [0.2, 2500]], q: 6, gain: 0.3 }] });
+      break;
+    }
+    case "moo": {
+      voice(o, t, { seconds: 1.6, gain: 0.34, breath: 0.08, attack: 0.18, release: 0.4, pitch: [[0, 105], [0.5, 128], [1.2, 118], [1.6, 92]],
+        formants: [{ f: [[0, 280], [0.4, 520], [1.6, 380]], q: 4, gain: 1 }, { f: [[0, 700], [0.4, 1000], [1.6, 760]], q: 5, gain: 0.55 }, { f: [[0, 2400], [1.6, 2300]], q: 6, gain: 0.12 }] });
+      break;
+    }
+    case "oink": {
+      for (const [at, f] of [[0, 190], [0.2, 170], [0.42, 205]] as const) voice(o, t + at, { seconds: 0.14, gain: 0.3, breath: 0.35, attack: 0.01, release: 0.06,
+        pitch: [[0, f], [0.14, f * 0.78]], rasp: 0.7, raspRate: 45,
+        formants: [{ f: [[0, 420], [0.14, 380]], q: 6, gain: 1 }, { f: [[0, 1150], [0.14, 1000]], q: 9, gain: 0.7 }, { f: [[0, 2600], [0.14, 2500]], q: 10, gain: 0.25 }] });
+      break;
+    }
+    case "crow": {
+      // Cock - a - doodle - dooo.
+      const notes: [number, number, number, number][] = [[0, 0.16, 720, 760], [0.2, 0.12, 820, 860], [0.36, 0.16, 780, 900], [0.58, 1.1, 980, 640]];
+      for (const [at, len, from, to] of notes) voice(o, t + at, { seconds: len, gain: 0.24, breath: 0.2, wave: "square", attack: 0.015, release: Math.min(0.3, len * 0.4),
+        pitch: [[0, from], [len * 0.3, (from + to) / 2 * 1.06], [len, to]], rasp: 0.25, raspRate: 60,
+        formants: [{ f: [[0, 1200], [len, 1000]], q: 4, gain: 1 }, { f: [[0, 2800], [len, 2400]], q: 6, gain: 0.6 }] });
+      break;
+    }
+    case "cluck": {
+      for (const at of [0, 0.19, 0.36]) voice(o, t + at, { seconds: 0.07, gain: 0.24, breath: 0.3, attack: 0.005, release: 0.04, pitch: [[0, 380], [0.07, 290]],
+        formants: [{ f: [[0, 650], [0.07, 520]], q: 5, gain: 1 }, { f: [[0, 1800], [0.07, 1500]], q: 7, gain: 0.5 }] });
+      voice(o, t + 0.62, { seconds: 0.42, gain: 0.26, breath: 0.25, attack: 0.02, release: 0.12, pitch: [[0, 360], [0.12, 330], [0.2, 520], [0.42, 470]], rasp: 0.2, raspRate: 50,
+        formants: [{ f: [[0, 600], [0.2, 900], [0.42, 800]], q: 5, gain: 1 }, { f: [[0, 1700], [0.42, 1900]], q: 7, gain: 0.5 }] });
+      break;
+    }
+    case "chirp": {
+      const tweets = 2 + Math.floor(Math.random() * 3);
+      for (let k = 0; k < tweets; k++) {
+        const at = t + k * 0.11, osc = ctx.createOscillator(), g = ctx.createGain(), base = 3200 + Math.random() * 900;
+        osc.type = "sine"; osc.frequency.setValueAtTime(base, at); osc.frequency.exponentialRampToValueAtTime(base * 1.45, at + 0.035); osc.frequency.exponentialRampToValueAtTime(base * 1.1, at + 0.06);
+        g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.11, at + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.065);
+        osc.connect(g); send(o, g, 0.35); osc.start(at); osc.stop(at + 0.08);
+      }
+      break;
+    }
+    case "ribbit": {
+      for (const [at, len] of [[0, 0.13], [0.2, 0.09]] as const) voice(o, t + at, { seconds: len, gain: 0.3, breath: 0.1, attack: 0.008, release: 0.03, pitch: [[0, 120], [len, 108]],
+        rasp: 1, raspRate: 34, formants: [{ f: [[0, 650], [len, 850]], q: 6, gain: 1 }, { f: [[0, 1500], [len, 1700]], q: 8, gain: 0.4 }] });
+      break;
+    }
+    case "snort": {
+      noiseBand(o, t, 0.22, "lowpass", 1400, 500, 1, 0.3, 0.006, 0.1);
+      noiseBand(o, t, 0.16, "bandpass", 900, 700, 3, 0.14, 0.006, 0.1);
+      break;
+    }
+    case "thump": {
+      thud(o, t, 75, 0.35);
+      for (const at of [0.22, 0.3, 0.38]) noiseBand(o, t + at, 0.05, "bandpass", 4200, 3800, 4, 0.03, 0.005, 0);
+      break;
+    }
+    case "boom": {
+      for (const at of [0, 0.75]) voice(o, t + at, { seconds: 0.62, gain: 0.24, wave: "sine", breath: 0.05, attack: 0.08, release: 0.25, pitch: [[0, 62], [0.3, 70], [0.62, 55]],
+        formants: [{ f: [[0, 120], [0.62, 110]], q: 1, gain: 1 }, { f: [[0, 260], [0.62, 240]], q: 2, gain: 0.35 }], reverb: 0.3 });
+      break;
+    }
+    case "hiss": noiseBand(o, t, 1.05, "highpass", 3500, 5200, 0.7, 0.075, 0.15, 0.1); break;
+    case "slither": {
+      // Dry scales on dirt: a soft rustle that swells and ebbs as the body pushes, with tiny grains of grit.
+      noiseBand(o, t, 0.55, "bandpass", 1600, 2300, 1.2, 0.07, 0.12, 0.05);
+      for (let k = 0; k < 5; k++) noiseBand(o, t + 0.05 + Math.random() * 0.45, 0.03, "highpass", 5000, 6000, 1, 0.02, 0.003, 0);
+      break;
+    }
+    case "flutter": {
+      noiseBand(o, t, 0.45, "bandpass", 500, 450, 1, 0.05, 0.05, 0);
+      const beat = ctx.createOscillator(), depth = ctx.createGain(), shaped = ctx.createGain();
+      beat.frequency.value = 11; depth.gain.value = 0.03; beat.connect(depth).connect(shaped.gain); shaped.gain.value = 0.03;
+      const air = noiseSource(ctx, 0.5), lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 700;
+      air.connect(lp).connect(shaped); send(o, shaped, 0); air.start(t); air.stop(t + 0.45); beat.start(t); beat.stop(t + 0.45);
+      break;
+    }
+    case "buzz": {
+      voice(o, t, { seconds: 0.55, gain: 0.07, attack: 0.15, release: 0.18, pitch: [[0, 225 + Math.random() * 20], [0.55, 235 + Math.random() * 20]], rasp: 0.35, raspRate: 180,
+        formants: [{ f: [[0, 500], [0.55, 520]], q: 2, gain: 1 }, { f: [[0, 1500], [0.55, 1400]], q: 3, gain: 0.5 }], reverb: 0.05 });
+      break;
+    }
+    case "roar": {
+      voice(o, t, { seconds: 1.9, gain: 0.45, breath: 0.45, attack: 0.25, release: 0.7, pitch: [[0, 95], [0.6, 150], [1.9, 75]], rasp: 0.6, raspRate: 26,
+        formants: [{ f: [[0, 400], [0.6, 750], [1.9, 450]], q: 3, gain: 1 }, { f: [[0, 1000], [0.6, 1300], [1.9, 900]], q: 4, gain: 0.5 }, { f: [[0, 2400], [1.9, 2200]], q: 5, gain: 0.2 }], reverb: 0.4 });
+      break;
+    }
+    case "growl": {
+      voice(o, t, { seconds: 1.2, gain: 0.42, breath: 0.35, attack: 0.15, release: 0.4, pitch: [[0, 70], [0.5, 88], [1.2, 64]], rasp: 0.8, raspRate: 22,
+        formants: [{ f: [[0, 320], [0.6, 420], [1.2, 300]], q: 4, gain: 1 }, { f: [[0, 750], [1.2, 680]], q: 5, gain: 0.4 }], reverb: 0.3 });
+      break;
+    }
+    case "yip": {
+      voice(o, t, { seconds: 0.32, gain: 0.3, breath: 0.35, attack: 0.01, release: 0.12, pitch: [[0, 900], [0.08, 1400], [0.32, 700]], rasp: 0.3, raspRate: 70,
+        formants: [{ f: [[0, 1100], [0.1, 1500], [0.32, 900]], q: 5, gain: 1 }, { f: [[0, 2600], [0.32, 2200]], q: 6, gain: 0.5 }], reverb: 0.3 });
+      break;
+    }
+    case "dragon": {
+      voice(o, t, { seconds: 1.6, gain: 0.5, breath: 0.5, attack: 0.2, release: 0.6, pitch: [[0, 60], [0.5, 105], [1.6, 50]], rasp: 0.7, raspRate: 19,
+        formants: [{ f: [[0, 300], [0.5, 600], [1.6, 350]], q: 3, gain: 1 }, { f: [[0, 800], [1.6, 700]], q: 4, gain: 0.5 }], reverb: 0.6 });
+      // The fire: a roaring whoosh of noise that opens up and dies away.
+      noiseBand(o, t + 0.5, 1.9, "lowpass", 500, 3500, 0.8, 0.28, 0.25, 0.4);
       break;
     }
     case "flip": {
@@ -264,7 +445,9 @@ function cue(o: Out, id: SoundId, t: number, options: CueOptions = {}) {
   }
 }
 /** How long each cue rings, in seconds (for rendering previews). */
-export const CUE_SECONDS: Readonly<Record<SoundId, number>> = { laser: 0.7, hoof: 0.45, flip: 1, bump: 0.45, showdown: 4.6, strike: 1.3, twist: 3.6, win: 2.9 };
+export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
+  meow: 0.9, bark: 0.7, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
+  slither: 0.6, flutter: 0.5, buzz: 0.6, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 0.7, hoof: 0.45, flip: 1, bump: 0.45, showdown: 4.6, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {

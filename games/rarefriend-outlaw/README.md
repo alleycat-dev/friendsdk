@@ -1026,6 +1026,15 @@ an anvil thud and a hollow bump, through a short spring-reverb echo. The first c
 flourish). Sound starts after the first click, tap or key press (browsers require it) and stops while the tab is hidden; Settings
 has **Sound on** (mute) and a volume slider.
 
+**Animals** sound as they do in life, with a small voice synthesizer (a buzzing source shaped by vowel-like formant filters):
+the cat meows, the dog barks, the cow moos, the pig grunts, the rooster crows, the hen clucks (bok, bok, bok, ba-gawk), birds
+tweet, frogs ribbit, the deer snorts, the rabbit thumps its hind foot, the ostrich booms, the snake hisses, the lion roars, the
+bear growls, the Golden Fox yelps and the dragon roars as it breathes fire, with a whoosh of flame. Some sounds go on while an
+animal is doing something: a snake slithering over dry ground while it moves, the bees' buzz near the swarm and the faint flutter
+of a butterfly's wings. For each kind, only the nearest animal within earshot (`HEAR_RANGE`, 520 world units) is heard, calling
+now and then at its own pace (`ANIMAL_CALLS`, `ANIMAL_LOOPS`), quieter with distance and panned to its side of the screen, so a
+flock or a swarm never turns into a din.
+
 Listen without the game: build the practice pages, then open `practice/dist/sounds.html` (buttons for every cue, WAV downloads),
 or render them all to `practice/dist/wav/` with `node games/rarefriend-outlaw/tools/sounds.mjs`, which also prints each cue's
 length and peak level.
