@@ -20,7 +20,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   strike: "Losing Integrity in a hack to a bomb, a bite or the like (a hit's instant strike-back is covered by the smash): an anvil thud under a low twang",
   twist: "A twist striking (RUGPULL!!!): whip crack, a falling whistle and a trembling guitar chord",
   win: "A cracked wallet: a mariachi trumpet flourish over a strummed chord",
-  meow: "Cat: a meow, rising then falling (mi-aow)",
+  meow: "Cat: mee-ow, the mouth opening wide and closing again",
   bark: "Dog: two gruff barks",
   moo: "Cow: a long, low moo",
   oink: "Pig: a few nasal grunts",
@@ -293,8 +293,27 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
     }
     // ----- Animals: each as it sounds in life -----
     case "meow": {
-      voice(o, t, { seconds: 0.75, gain: 0.19, breath: 0.1, pitch: [[0, 560], [0.25, 820], [0.55, 700], [0.75, 480]],
-        formants: [{ f: [[0, 350], [0.3, 900], [0.75, 450]], q: 5, gain: 1 }, { f: [[0, 2300], [0.3, 1500], [0.75, 900]], q: 7, gain: 0.7 }, { f: [[0, 3200], [0.75, 2600]], q: 8, gain: 0.3 }] });
+      // "Mee-ow" as a mouth makes it: closed and nasal (m), opening wide and bright (ee-ah), then rounding and closing dark (ow). A
+      // warm voice around 550 Hz with a gentle rise and fall and a slight tremble, through a "mouth" low-pass that opens and closes,
+      // with two soft, broad vowel resonances (no narrow peaks, which squeal).
+      const seconds = 0.72, mouth = ctx.createBiquadFilter(), g = ctx.createGain(), mix = ctx.createGain(), vib = ctx.createOscillator(), vibDepth = ctx.createGain();
+      const pitch: [number, number][] = [[0, 500], [0.18, 640], [0.4, 610], [0.72, 420]];
+      mouth.type = "lowpass"; mouth.Q.value = 1.2;
+      mouth.frequency.setValueAtTime(550, t); mouth.frequency.linearRampToValueAtTime(2600, t + 0.2); mouth.frequency.linearRampToValueAtTime(2200, t + 0.38); mouth.frequency.linearRampToValueAtTime(650, t + seconds);
+      vib.frequency.value = 6; vibDepth.gain.value = 9; vib.connect(vibDepth);
+      for (const [type, level] of [["sawtooth", 0.5], ["triangle", 0.7]] as const) {
+        const osc = ctx.createOscillator(), og = ctx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(pitch[0][1], t); for (const [at, f] of pitch.slice(1)) osc.frequency.linearRampToValueAtTime(f, t + at);
+        vibDepth.connect(osc.frequency); og.gain.value = level; osc.connect(og).connect(mix); osc.start(t); osc.stop(t + seconds + 0.05);
+      }
+      const direct = ctx.createGain(); direct.gain.value = 0.5; mix.connect(direct).connect(mouth);
+      for (const [points, q, level] of [[[[0, 700], [0.2, 1300], [0.4, 1150], [0.72, 600]], 2, 0.9], [[[0, 1500], [0.2, 2000], [0.4, 1800], [0.72, 1000]], 2.5, 0.45]] as const) {
+        const band = ctx.createBiquadFilter(), bg = ctx.createGain();
+        band.type = "bandpass"; band.Q.value = q; band.frequency.setValueAtTime(points[0][1], t); for (const [at, f] of points.slice(1)) band.frequency.linearRampToValueAtTime(f, t + at);
+        bg.gain.value = level; mix.connect(band).connect(bg).connect(mouth);
+      }
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.14, t + 0.07); g.gain.setValueAtTime(0.14, t + 0.45); g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+      mouth.connect(g); send(o, g, 0.2); vib.start(t); vib.stop(t + seconds + 0.05);
       break;
     }
     case "bark": {
