@@ -601,8 +601,8 @@ type Item = Readonly<{ id: ItemId; name: string; price: bigint; op?: number; blu
 /** Outlaw Points (OP): the simulated game currency. Earned by neutralizing outlaws and downing animals, spent at the Exchange. */
 const OP_BIG_GAME = 5, OP_ANIMAL = 1;
 /** A cracked wallet pays OP by its level (WALLET_OP, levels 1 to 12: 10 for the first two, up by 10 every two levels to 50, then 75
- * and 100 for the last two), times 1, 1.5 or 2 for one, two or three stars. A wiped wallet pays none. */
-const WALLET_OP = [10, 10, 20, 20, 30, 30, 40, 40, 50, 50, 75, 100] as const, OP_STAR_MULTIPLIER = [1, 1, 1.5, 2] as const;
+ * and 100 for the last two), times 1, 1.25 or 1.5 for one, two or three stars. A wiped wallet pays none. */
+const WALLET_OP = [10, 10, 20, 20, 30, 30, 40, 40, 50, 50, 75, 100] as const, OP_STAR_MULTIPLIER = [1, 1, 1.25, 1.5] as const;
 const walletOp = (level: number, stars: number) => Math.round(WALLET_OP[Math.max(0, Math.min(WALLET_OP.length - 1, level))] * OP_STAR_MULTIPLIER[Math.max(0, Math.min(3, stars))]);
 
 // What else a cracked wallet can hold (simulated, rolled in the browser; only the RF comes from the SDK's plays).
@@ -706,7 +706,7 @@ const PERMANENT_HORSE_OP = 150, TEMP_HORSE_OP = 10, HORSE_TEMP_MS = 30_000, WILD
  * Charging Station tops it up for RELOAD_OP OP a shot, up to LASER_MAX. */
 const LASER_CHARGES = 20n, LASER_MAX = 50n, RELOAD_OP = 1;
 /** A run ends when The Liquidator's wallet is settled, or whenever you choose to retire and settle with the seed words you hold; wiped
- * wallets are counted but never end it. A cracked wallet is a jackpot wallet with JACKPOT_WALLET_CHANCE: triple OP, a second loot
+ * wallets are counted but never end it. A cracked wallet is a jackpot wallet with JACKPOT_WALLET_CHANCE: double OP, a second loot
  * roll and the better keepsake odds. */
 const JACKPOT_WALLET_CHANCE = 0.05, LIQUIDATOR_LEVEL = 11;
 /** OP every run starts with, on top of whatever you hold. */
@@ -5235,12 +5235,12 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   }
 
 
-  /** Open a cracked wallet: its OP (by tier and stars, tripled in a jackpot wallet), its loot and one keepsake from its outlaw. No RF
+  /** Open a cracked wallet: its OP (by level and stars, doubled in a jackpot wallet), its loot and one keepsake from its outlaw. No RF
    * and no dialog: the RF is the licence's payout, revealed when the run ends. */
   function openHaul(level: number, stars: number, ownerNames: readonly string[], outlaw: string) {
-    const jackpot = Math.random() < JACKPOT_WALLET_CHANCE, op = walletOp(level, stars) * (jackpot ? 3 : 1);
+    const jackpot = Math.random() < JACKPOT_WALLET_CHANCE, op = walletOp(level, stars) * (jackpot ? 2 : 1);
     setOp(value => value + op);
-    const finds: RewardItem[] = [{ icon: "op", label: `+${op} OP`, detail: jackpot ? "tripled" : "Outlaw Points", rarity: jackpot ? "legendary" : "common" }];
+    const finds: RewardItem[] = [{ icon: "op", label: `+${op} OP`, detail: jackpot ? "doubled" : "Outlaw Points", rarity: jackpot ? "legendary" : "common" }];
     // No keepsake here: the owner's keepsake already dropped when it was neutralized (jackpot wallets add none).
     finds.push(...rollLoot(jackpot));
     setHaul({ items: finds, jackpot, outlaw }); setRewardsOpen(true);
