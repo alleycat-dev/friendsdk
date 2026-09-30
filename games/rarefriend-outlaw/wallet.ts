@@ -45,7 +45,7 @@ export type TwistId = "rugpull" | "butchering" | "exitscam" | "drainer" | "pumpd
 export const TWISTS: Readonly<Record<TwistId, { name: string; rule: string }>> = {
   rugpull: { name: "Rug Pull", rule: "Without warning, on move 7, 8, 9 or 10, the board is pulled out from under you: it comes back the same, but every tile except the one you stand on is face down again. Remember what you saw." },
   butchering: { name: "Pig Butchering", rule: "Fattened: eight programs on the board and three slots. Selecting a program while every slot is full butchers you: nothing runs, your whole hand is gone and you lose a slot. It can happen again with two slots full, never with one." },
-  exitscam: { name: "Exit Scam", rule: "At two thirds of the trace the scammer exits with the data: every empty sector's reading is wiped (uncovered ones too) and every program and Honeypot still on the board vanishes. Defenders, the chip and the programs in your slots stay." },
+  exitscam: { name: "Exit Scam", rule: "At two thirds of the trace the scammer exits with the data: every empty sector's reading is wiped (uncovered ones too), and every program vanishes: those in your slots and every program and Honeypot still on the board. Defenders and the chip stay." },
   drainer: { name: "Wallet Drainer", rule: "Two drainer traps lie hidden on the board. Uncover one and the hardware wallet is drained of all its valuables, your program slots with it; the second finds it already empty." },
   pumpdump: { name: "Pump and Dump", rule: "Pumped from your first flip: your Power is 4. Dumped once the trace is 60% full: your Power drops to 1." },
   honeyfarm: { name: "Honeypot Farm", rule: "Every program on this board sits in a Honeypot: nine of them, every one a ping to the tracer and a lunge of the Virus." },
@@ -645,12 +645,14 @@ function afterMove(state: WalletState, index: number): WalletState {
   if (tier.twist === "pumpdump" && !s.fired.includes("dump") && trace * 5 >= tier.traceLimit * 3) { s.power = 1; text += " The dump: your Power drops to 1."; fire(s, "dump", "DUMPED!!!", "Your Power is dumped down to 1"); }
   if (tier.twist === "exitscam" && !s.exited && trace * 3 >= tier.traceLimit * 2) {
     s.exited = true;
+    // The programs in your slots go with the data too.
+    s.slots = []; s.targeting = null; s.explorerPicks = 0;
     for (let i = 0; i < s.tiles.length; i++) {
       const t = s.tiles[i];
       if (t.kind === "program" || t.kind === "honeypot") s.tiles[i] = { ...t, kind: "empty", program: undefined };
       if (s.tiles[i].kind === "empty" && i !== s.start) s.tiles[i] = { ...s.tiles[i], blank: true, decoy: false, exposed: false, beacon: false };
     }
-    text += " Exit scam: every sector reading is wiped and every program left on the board vanishes."; fire(s, "exitscam", "EXIT SCAM!!!", "Readings wiped, board programs gone");
+    text += " Exit scam: every sector reading is wiped, and every program vanishes, on the board and in your slots."; fire(s, "exitscam", "EXIT SCAM!!!", "Readings wiped, all your programs gone");
   }
   // The Rug Pull: no warning; it lands on its secret move.
   s.moves += 1;

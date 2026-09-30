@@ -491,9 +491,9 @@ for the last ten), and a parked one with its time running shows its seconds over
     - **Exit Scam** (Exit Scammer): at two thirds of the trace the scammer
       exits with the data: every empty sector's reading is wiped, covered or
       already uncovered (the tiles stay, showing nothing), and every program
-      and Honeypot still on the board vanishes. Defenders, the chip and the
-      programs already in your slots are untouched — so read the board and
-      pocket what you need before flip 12.
+      and Honeypot still on the board vanishes, and so do the programs in
+      your slots. Defenders and the chip are untouched, so read the board and
+      use what you hold before the trace reaches 14 of 20.
     - **Wallet Drainer** (Wallet Drainer): two drainer traps (a wallet tipped
       over, coins spilling into a drain) lie face down at random spots on
       the board. Uncover one and the hardware wallet is drained of all its
