@@ -642,7 +642,7 @@ function afterMove(state: WalletState, index: number): WalletState {
     }
   }
   // Twists that trigger on the trace.
-  if (tier.twist === "pumpdump" && !s.fired.includes("dump") && trace * 5 >= tier.traceLimit * 3) { s.power = 1; text += " The dump: your Power drops to 1."; fire(s, "dump", "DUMPED!!!"); }
+  if (tier.twist === "pumpdump" && !s.fired.includes("dump") && trace * 5 >= tier.traceLimit * 3) { s.power = 1; text += " The dump: your Power drops to 1."; fire(s, "dump", "DUMPED!!!", "Your Power is dumped down to 1"); }
   if (tier.twist === "exitscam" && !s.exited && trace * 3 >= tier.traceLimit * 2) {
     s.exited = true;
     for (let i = 0; i < s.tiles.length; i++) {
