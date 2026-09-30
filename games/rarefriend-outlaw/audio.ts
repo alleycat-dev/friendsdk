@@ -7,7 +7,7 @@
 
 export const SOUND_IDS = ["laser", "hoof", "step", "bump", "showdown", "flip", "smash", "strike", "twist", "win",
   "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
-  "roar", "growl", "yip", "dragon"] as const;
+  "roar", "growl", "yip", "dragon", "wail"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
 /** What each cue is for, for the preview page and the README. */
 export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
@@ -40,6 +40,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   growl: "Bear: a deep growl",
   yip: "Golden Fox: a high, raspy yelp",
   dragon: "Dragon: a huge roar and a whoosh of fire",
+  wail: "A shot animal's pained cry, in its own voice (`species`: rabbit, deer, cow, pig, ostrich, snake, lion, bear or dragon)",
 };
 
 type Out = { ctx: BaseAudioContext; dry: AudioNode; wet: AudioNode };
@@ -222,9 +223,9 @@ function send(o: Out, node: AudioNode, amount: number) {
 // Cues
 // ---------------------------------------------------------------------------------------------------------------------------
 
-/** `heavy`: the bigger version of a cue (a defender that breaks). `step`: which note of a scale; `gain` (0-1) and `pan` (-1 left to 1 right) place a sound in the world (an animal's distance and
+/** `species`: whose cry a `wail` is. `heavy`: the bigger version of a cue (a defender that breaks). `step`: which note of a scale; `gain` (0-1) and `pan` (-1 left to 1 right) place a sound in the world (an animal's distance and
  * side of the screen). */
-export type CueOptions = { step?: number; gain?: number; pan?: number; heavy?: boolean };
+export type CueOptions = { step?: number; gain?: number; pan?: number; heavy?: boolean; species?: string };
 function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
   const o = placed(base, t, options), { ctx } = o;
   switch (id) {
@@ -446,6 +447,33 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       noiseBand(o, t + 0.5, 1.9, "lowpass", 500, 3500, 0.8, 0.28, 0.25, 0.4);
       break;
     }
+    case "wail": {
+      // A shot animal cries out in its own voice: higher and more strained than its call, wavering, and falling away.
+      const cry = (seconds: number, gain: number, pitch: [number, number][], formants: Voice["formants"], rasp: number, raspRate: number, breath = 0.3) =>
+        voice(o, t, { seconds, gain, breath, attack: 0.01, release: seconds * 0.4, rasp, raspRate, reverb: 0.35, pitch, formants });
+      switch (options.species) {
+        case "rabbit": // a thin, high scream
+          cry(0.45, 0.16, [[0, 1100], [0.08, 1400], [0.45, 850]], [{ f: [[0, 1400], [0.45, 1100]], q: 4, gain: 1 }, { f: [[0, 3000], [0.45, 2600]], q: 5, gain: 0.4 }], 0.4, 60); break;
+        case "deer": // a nasal bawl
+          cry(0.55, 0.22, [[0, 420], [0.1, 520], [0.55, 330]], [{ f: [[0, 700], [0.55, 550]], q: 5, gain: 1 }, { f: [[0, 1600], [0.55, 1300]], q: 7, gain: 0.5 }], 0.5, 40); break;
+        case "cow": // a wavering, pained moo, higher than its call
+          cry(1.0, 0.3, [[0, 150], [0.2, 210], [0.45, 180], [0.7, 205], [1.0, 115]], [{ f: [[0, 450], [0.3, 650], [1.0, 400]], q: 4, gain: 1 }, { f: [[0, 900], [1.0, 800]], q: 5, gain: 0.5 }], 0.35, 9); break;
+        case "pig": // a shrill squeal
+          cry(0.6, 0.2, [[0, 700], [0.1, 1150], [0.35, 1000], [0.6, 650]], [{ f: [[0, 1200], [0.6, 1000]], q: 5, gain: 1 }, { f: [[0, 2600], [0.6, 2300]], q: 7, gain: 0.5 }], 0.6, 55, 0.35); break;
+        case "ostrich": // a rough honk and a hiss
+          cry(0.5, 0.28, [[0, 260], [0.1, 320], [0.5, 180]], [{ f: [[0, 600], [0.5, 450]], q: 3, gain: 1 }, { f: [[0, 1300], [0.5, 1100]], q: 4, gain: 0.4 }], 0.7, 30, 0.45);
+          noiseBand(o, t + 0.35, 0.5, "highpass", 3000, 4500, 0.7, 0.07, 0.03, 0.1); break;
+        case "snake": // a sharp, angry hiss
+          noiseBand(o, t, 0.6, "highpass", 2800, 5500, 0.8, 0.16, 0.01, 0.15); noiseBand(o, t, 0.25, "bandpass", 4200, 3500, 2, 0.06, 0.005, 0.1); break;
+        case "lion": // a pained snarl, shorter and higher than its roar
+          cry(0.9, 0.4, [[0, 150], [0.15, 230], [0.9, 95]], [{ f: [[0, 600], [0.2, 900], [0.9, 500]], q: 3, gain: 1 }, { f: [[0, 1400], [0.9, 1100]], q: 4, gain: 0.5 }], 0.6, 28, 0.45); break;
+        case "bear": // a deep bellow
+          cry(0.95, 0.4, [[0, 110], [0.2, 175], [0.95, 80]], [{ f: [[0, 420], [0.3, 600], [0.95, 360]], q: 3, gain: 1 }, { f: [[0, 900], [0.95, 750]], q: 4, gain: 0.45 }], 0.7, 22, 0.4); break;
+        case "dragon": // a shattering shriek
+          cry(1.4, 0.4, [[0, 260], [0.25, 520], [0.6, 440], [1.4, 170]], [{ f: [[0, 800], [0.3, 1300], [1.4, 600]], q: 3, gain: 1 }, { f: [[0, 2200], [1.4, 1700]], q: 4, gain: 0.5 }], 0.55, 17, 0.5); break;
+      }
+      break;
+    }
     case "flip": {
       // A computer bleep: a plain square wave with a soft sine under it, on for a moment and off, square-edged like an old terminal's
       // beep, dry. Its note is the chain's size on the scale (`step`), an octave up, so it rises only when the chain grows and
@@ -539,7 +567,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 0.9, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {

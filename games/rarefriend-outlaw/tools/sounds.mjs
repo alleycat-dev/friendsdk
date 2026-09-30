@@ -18,7 +18,7 @@ const cues = await page.evaluate(async () => {
   const { renderCue, wavBytes, SOUND_IDS } = window.outlawSounds, rendered = [];
   const base64 = bytes => { let text = ""; for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(text); };
   for (const id of SOUND_IDS) {
-    const buffer = await renderCue(id, { step: 2 });
+    const buffer = await renderCue(id, { step: 2, species: "cow" });
     let peak = 0, sum = 0;
     for (let c = 0; c < buffer.numberOfChannels; c++) for (const value of buffer.getChannelData(c)) { peak = Math.max(peak, Math.abs(value)); sum += value * value; }
     rendered.push({ id, seconds: buffer.duration, peak, rms: Math.sqrt(sum / (buffer.length * buffer.numberOfChannels)), wav: base64(wavBytes(buffer)) });
@@ -27,6 +27,8 @@ const cues = await page.evaluate(async () => {
   const sequences = {
     gallop: [...Array(8)].map((_, i) => ({ id: "hoof", at: i * 0.52 })),
     "short-hack": [...[0, 1, 2, 3, 4].map(k => ({ id: "flip", at: k * 0.22, options: { step: k } })), { id: "smash", at: 1.3 }, { id: "smash", at: 2.1, options: { heavy: true } }, { id: "win", at: 3.4 }],
+    // Every shot animal's cry, one after another.
+    wails: ["rabbit", "deer", "cow", "pig", "ostrich", "snake", "lion", "bear", "dragon"].map((species, k) => ({ id: "wail", at: k * 1.6, options: { species } })),
     "smash-break": [{ id: "smash", at: 0, options: { heavy: true } }],
     // Flips as a chain grows and stalls: the note climbs only when the chain does.
     // The swarm's hum as it plays near the hive: overlapping pieces, two voices.

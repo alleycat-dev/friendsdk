@@ -1033,7 +1033,9 @@ the cat meows, the dog barks, the cow moos, the pig grunts, the rooster crows, t
 tweet, frogs ribbit, the deer snorts, the rabbit thumps its hind foot, the ostrich booms, the snake hisses, the lion roars, the
 bear growls, the Golden Fox yelps and the dragon roars as it breathes fire, with a whoosh of flame. Some sounds go on while an
 animal is doing something: a snake slithering over dry ground while it moves, the bees' low, oscillating hum near the swarm and the faint flutter
-of a butterfly's wings. Every animal within earshot (`HEAR_RANGE`, 520 world units) calls now and then on its own timer
+of a butterfly's wings. Animals that can be shot cry out in their own voice when a bolt hits them (`wail`): the rabbit's thin scream, the deer's bawl, a
+wavering, pained moo, the pig's squeal, the ostrich's honk and hiss, the snake's angry hiss, the lion's snarl, the bear's bellow
+and the dragon's shriek. Every animal within earshot (`HEAR_RANGE`, 520 world units) calls now and then on its own timer
 (`ANIMAL_CALLS`), starting at a random point in its rhythm, so more animals together make more sound together: a herd of cows,
 a flock of hens or a pond of frogs sounds like one. Each is quieter with distance and panned to its side of the screen, and at
 most five calls start in any second (`MAX_CALLS_PER_SECOND`), so a crowd stays a chorus. Ongoing sounds (`ANIMAL_LOOPS`) add

@@ -4292,7 +4292,12 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
                 if (hit.hp <= 0) { hit.hp = 0; hit.fallenAt = now; hit.walking = false; movement.stop(); setNote(""); dropOutlawKeepsake(hit); const caught = hit.name ?? "The hacker", variant = hit.variant; setPosters(value => value.some(poster => poster.name === caught) ? value : [...value, { name: caught, variant }]); setPrompt({ npcId: hit.id, name: hit.name ?? "The hacker", step: "list" }); }
                 else setNote(`${hit.name ?? "The hacker"} is winged and staggers. ${hit.hp} more hit${hit.hp === 1 ? "" : "s"} to bring them down.`, "bad");
               }
-              else if (hit) { hit.hp -= 1; if (hit.hp <= 0) killAnimal(hit, now); else setNote(`${ANIMAL_BY_ID[hit.kind as AnimalId].name} hit! ${hit.hp} more to bring it down.`, "bad"); }
+              else if (hit) {
+                // A shot animal cries out in its own voice, placed like its calls.
+                { const dx = (project(...hit.position)[0] - project(...state.position)[0]) * SCALE;
+                  audio.current?.play("wail", { species: hit.kind, gain: Math.max(0.35, 1 - distance(hit.position, state.position) / HEAR_RANGE), pan: Math.max(-0.8, Math.min(0.8, dx / (VIEW.width / 2) * 0.8)) }); }
+                hit.hp -= 1; if (hit.hp <= 0) killAnimal(hit, now); else setNote(`${ANIMAL_BY_ID[hit.kind as AnimalId].name} hit! ${hit.hp} more to bring it down.`, "bad");
+              }
               if (gone || hit) shots.current = shots.current.filter(entry => entry !== shot);
             }
             const due = respawns.current.filter(entry => entry.at <= now);
