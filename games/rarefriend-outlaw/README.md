@@ -1052,7 +1052,8 @@ voices with numbers, up to three: more moving snakes, more butterflies, and one 
 reverb-soaked nylon-guitar arpeggio over the classic cadence Am - G - F - E at 66 beats a minute (one of four sparse picking
 patterns per pass, slightly humanised), a soft drone on each root and a faint pad; every third pass a distant whistle sings a
 phrase over it, and every fourth a bell tolls far off. It sits well under the animals and cues (`MUSIC_LEVEL`) on its own bus, is
-laid down a second ahead by a look-ahead scheduler, and hands over to **"Trace"** while a hardware wallet is being hacked. Two more tracks in the same style take over at the next bar when the moment calls for it (`MusicMood`):
+laid down a second ahead by a look-ahead scheduler, and hands over to **"Trace"** while a hardware wallet is being hacked. Two more tracks in the same style take over the moment it calls for it (`MusicMood`; the queued bars fade out in
+about a third of a second and the new track starts at once, from the top of its phrase):
 **"Trail Gallop"** while you ride a horse (`scheduleRideBar`): the same cadence at 112 beats a minute, a picked bass on the beat,
 short damped strums on the off-beats, a galloping shaker (ta-ta-TA on every beat) under the hoofbeats and, every other pass, a
 trumpet line; and **"The Standoff"** while a living outlaw is near (within 600 world units, back beyond 820; it wins over the

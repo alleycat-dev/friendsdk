@@ -809,6 +809,8 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
   let level = volume, silent = muted, disposed = false;
   let musicMaster: GainNode | null = null, musicOut: Out | null = null, musicOn = true, musicAllowed = true, timer = 0, nextBar = 0, bar = 0, pass = 0, pattern = 0;
   let mood: MusicMood = "calm", playing: MusicMood = "calm", musicLevel = 0.5;
+  /** The bars laid down ahead, each through its own gain, so a change of track can fade out what is already queued. */
+  let queued: { dry: GainNode; wet: GainNode; end: number }[] = [];
   const audible = () => musicOn && musicAllowed && !disposed;
   const apply = () => {
     if (master && ctx) master.gain.setTargetAtTime(silent ? 0 : level * 0.8, ctx.currentTime, 0.02);
@@ -820,11 +822,13 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
   const tick = () => {
     if (!ctx || !musicOut) return;
     if (!audible()) { if (ctx.currentTime > nextBar) { clearInterval(timer); timer = 0; } return; }
+    queued = queued.filter(entry => entry.end > ctx!.currentTime);
     while (nextBar < ctx.currentTime + 1.2) {
-      // A change of mood takes over at the next bar, picking up the cadence where it is.
       playing = mood;
       if (bar === 0) pattern = Math.floor(Math.random() * MUSIC_PATTERNS.length);
-      scheduleMoodBar(musicOut, playing, nextBar, bar, pass, pattern);
+      const dry = ctx.createGain(), wet = ctx.createGain(); dry.connect(musicOut.dry); wet.connect(musicOut.wet);
+      queued.push({ dry, wet, end: nextBar + MOOD_BAR[playing] + 4 });
+      scheduleMoodBar({ ctx, dry, wet }, playing, nextBar, bar, pass, pattern);
       nextBar += MOOD_BAR[playing]; bar = (bar + 1) % MUSIC_CHORDS.length; if (bar === 0) pass++;
     }
   };
@@ -853,7 +857,17 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
     setVolume(value) { level = Math.max(0, Math.min(1, value)); apply(); },
     setMusic(on) { musicOn = on; apply(); },
     setMusicAllowed(allowed) { musicAllowed = allowed; apply(); },
-    setMusicMood(value) { mood = value; },
+    setMusicMood(value) {
+      if (value === mood) return;
+      mood = value;
+      // Cut over at once: what is queued fades out in about a third of a second, and the new track starts now, from the top of its
+      // phrase (not at the next bar, which in Lonesome Trail could be seconds away).
+      if (!ctx || !musicOut || !timer) return;
+      const now = ctx.currentTime;
+      for (const entry of queued) for (const node of [entry.dry, entry.wet]) { node.gain.cancelScheduledValues(now); node.gain.setTargetAtTime(0, now, 0.1); }
+      queued = []; nextBar = now + 0.12; bar = 0;
+      tick();
+    },
     setMusicVolume(value) { musicLevel = Math.max(0, Math.min(1, value)); apply(); },
     dispose() { disposed = true; clearInterval(timer); document.removeEventListener("visibilitychange", onHidden); void ctx?.close(); ctx = null; },
   };
