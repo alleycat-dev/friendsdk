@@ -29,6 +29,8 @@ const cues = await page.evaluate(async () => {
     "short-hack": [...[0, 1, 2, 3, 4].map(k => ({ id: "flip", at: k * 0.22, options: { step: k } })), { id: "smash", at: 1.3 }, { id: "smash", at: 2.1, options: { heavy: true } }, { id: "win", at: 3.4 }],
     "smash-break": [{ id: "smash", at: 0, options: { heavy: true } }],
     // Flips as a chain grows and stalls: the note climbs only when the chain does.
+    // The swarm's hum as it plays near the hive: overlapping pieces, two voices.
+    swarm: [...Array(8)].flatMap((_, k) => [{ id: "buzz", at: k * 0.65 }, { id: "buzz", at: k * 0.65 + 0.3, options: { pan: 0.4, gain: 0.7 } }]),
     chain: [0, 1, 1, 2, 3, 3, 3, 4, 5, 5, 6, 7].map((step, k) => ({ id: "flip", at: k * 0.3, options: { step } })),
   };
   for (const [id, steps] of Object.entries(sequences)) {

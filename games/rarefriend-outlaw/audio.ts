@@ -34,7 +34,7 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   hiss: "Snake: a long hiss",
   slither: "Snake: scales rustling over dry ground while it moves (repeats)",
   flutter: "Butterfly: the faintest flutter of wings (repeats)",
-  buzz: "Bees: a buzz, louder the nearer the swarm (repeats)",
+  buzz: "Bees: a low, oscillating hum, louder the nearer the swarm (repeats)",
   roar: "Lion: a rumbling roar",
   growl: "Bear: a deep growl",
   yip: "Golden Fox: a high, raspy yelp",
@@ -374,8 +374,23 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       break;
     }
     case "buzz": {
-      voice(o, t, { seconds: 0.55, gain: 0.07, attack: 0.15, release: 0.18, pitch: [[0, 225 + Math.random() * 20], [0.55, 235 + Math.random() * 20]], rasp: 0.35, raspRate: 180,
-        formants: [{ f: [[0, 500], [0.55, 520]], q: 2, gain: 1 }, { f: [[0, 1500], [0.55, 1400]], q: 3, gain: 0.5 }], reverb: 0.05 });
+      // A low, oscillating hum: a soft triangle-and-sawtooth drone around 150 Hz whose pitch and loudness swell and dip slowly as the
+      // bee drifts about, through a mellow low-pass. Long, overlapping pieces fade in and out, so the hum runs on without seams.
+      const seconds = 1, base = 140 + Math.random() * 30, lp = ctx.createBiquadFilter(), g = ctx.createGain(), wobble = ctx.createOscillator(), depth = ctx.createGain();
+      const swell = ctx.createOscillator(), swellDepth = ctx.createGain(), level = ctx.createGain();
+      lp.type = "lowpass"; lp.frequency.value = 850; lp.Q.value = 1.2;
+      wobble.frequency.value = 3 + Math.random() * 2.5; depth.gain.value = base * 0.07;
+      swell.frequency.value = 1.5 + Math.random(); swellDepth.gain.value = 0.35; level.gain.value = 0.65;
+      swell.connect(swellDepth).connect(level.gain);
+      for (const [type, ratio, amount] of [["triangle", 1, 0.7], ["sawtooth", 1.003, 0.3], ["triangle", 2, 0.15]] as const) {
+        const osc = ctx.createOscillator(), og = ctx.createGain();
+        osc.type = type; osc.frequency.value = base * ratio; og.gain.value = amount;
+        wobble.connect(depth).connect(osc.frequency);
+        osc.connect(og).connect(lp); osc.start(t); osc.stop(t + seconds + 0.05);
+      }
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.11, t + 0.3); g.gain.setValueAtTime(0.11, t + seconds - 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+      lp.connect(level).connect(g); send(o, g, 0.05);
+      for (const node of [wobble, swell]) { node.start(t); node.stop(t + seconds + 0.05); }
       break;
     }
     case "roar": {
@@ -484,7 +499,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 0.9, bark: 0.7, moo: 1.8, oink: 0.8, crow: 1.9, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 0.6, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 1.3, hoof: 0.5, flip: 1, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, laser: 1.3, hoof: 0.5, flip: 1, bump: 0.45, showdown: 4.6, smash: 1.4, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {

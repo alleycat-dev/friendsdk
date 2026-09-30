@@ -1031,12 +1031,12 @@ has **Sound on** (mute) and a volume slider.
 the cat meows, the dog barks, the cow moos, the pig grunts, the rooster crows, the hen clucks (bok, bok, bok, ba-gawk), birds
 tweet, frogs ribbit, the deer snorts, the rabbit thumps its hind foot, the ostrich booms, the snake hisses, the lion roars, the
 bear growls, the Golden Fox yelps and the dragon roars as it breathes fire, with a whoosh of flame. Some sounds go on while an
-animal is doing something: a snake slithering over dry ground while it moves, the bees' buzz near the swarm and the faint flutter
+animal is doing something: a snake slithering over dry ground while it moves, the bees' low, oscillating hum near the swarm and the faint flutter
 of a butterfly's wings. Every animal within earshot (`HEAR_RANGE`, 520 world units) calls now and then on its own timer
 (`ANIMAL_CALLS`), starting at a random point in its rhythm, so more animals together make more sound together: a herd of cows,
 a flock of hens or a pond of frogs sounds like one. Each is quieter with distance and panned to its side of the screen, and at
 most five calls start in any second (`MAX_CALLS_PER_SECOND`), so a crowd stays a chorus. Ongoing sounds (`ANIMAL_LOOPS`) add
-voices with numbers, up to three: more moving snakes, more butterflies, and one more buzz for every five bees.
+voices with numbers, up to three: more moving snakes, more butterflies, and one more hum for every five bees.
 
 Listen without the game: build the practice pages, then open `practice/dist/sounds.html` (buttons for every cue, WAV downloads),
 or render them all to `practice/dist/wav/` with `node games/rarefriend-outlaw/tools/sounds.mjs`, which also prints each cue's

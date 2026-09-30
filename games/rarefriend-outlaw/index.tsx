@@ -679,7 +679,7 @@ const ANIMAL_CALLS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: rea
 /** Sounds that go on while an animal is doing something, repeated every `every` ms while it is within `range`: a snake slithering
  * (only while it moves), the bees' buzz and a butterfly's wings. Several nearby add voices, up to three (bees one per `perVoice`). */
 const ANIMAL_LOOPS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: number; range: number; moving?: boolean; perVoice?: number }>>> = {
-  snake: { cue: "slither", every: 500, range: 360, moving: true }, bee: { cue: "buzz", every: 470, range: 300, perVoice: 5 }, butterfly: { cue: "flutter", every: 430, range: 170 },
+  snake: { cue: "slither", every: 500, range: 360, moving: true }, bee: { cue: "buzz", every: 650, range: 300, perVoice: 5 }, butterfly: { cue: "flutter", every: 430, range: 170 },
 };
 /** At most this many animal calls start in any one second, however big the crowd. */
 const MAX_CALLS_PER_SECOND = 5;
