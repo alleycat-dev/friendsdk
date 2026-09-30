@@ -4637,6 +4637,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             const outlaw = npcs.current.find(npc => npc.kind === "outlaw" && !npc.fallenAt && here(npc) && distance(npc.position, state.position) <= CONTACT);
             if (outlaw) {
               contactCooldown.current = now + CONTACT_COOLDOWN;
+              audio.current?.play("bump");
               const { owned: haves, captured: pets } = live.current;
               const pool: Loot[] = [
                 ...(Object.keys(haves) as Durable[]).filter(id => haves[id] > 0),
