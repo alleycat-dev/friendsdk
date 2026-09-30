@@ -742,7 +742,7 @@ const MOOD_BAR: Readonly<Record<MusicMood, number>> = { calm: MUSIC_BAR, ride: R
 function scheduleMoodBar(o: Out, mood: MusicMood, t: number, bar: number, pass: number, pattern: number) {
   if (mood === "ride") scheduleRideBar(o, t, bar, pass); else if (mood === "tense") scheduleStandoffBar(o, t, bar, pass); else scheduleMusicBar(o, t, bar, pass, pattern);
 }
-/** The music's level against the sound effects: well under the animals and cues. */
+/** The music's level against the sound effects at music volume 0.5 (the slider's middle): well under the animals and cues. */
 const MUSIC_LEVEL = 0.35;
 
 export type OutlawAudio = {
@@ -758,18 +758,20 @@ export type OutlawAudio = {
   /** The track: "calm" (Lonesome Trail), "ride" (Trail Gallop, on a horse) or "tense" (The Standoff, an outlaw near); it changes at
    * the next bar. */
   setMusicMood(mood: MusicMood): void;
+  /** The music's own volume (0-1), on top of the overall volume. */
+  setMusicVolume(volume: number): void;
   dispose(): void;
 };
 export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawAudio {
   let ctx: AudioContext | null = null, master: GainNode | null = null, out: Out | null = null;
   let level = volume, silent = muted, disposed = false;
   let musicMaster: GainNode | null = null, musicOut: Out | null = null, musicOn = true, musicAllowed = true, timer = 0, nextBar = 0, bar = 0, pass = 0, pattern = 0;
-  let mood: MusicMood = "calm", playing: MusicMood = "calm";
+  let mood: MusicMood = "calm", playing: MusicMood = "calm", musicLevel = 0.5;
   const audible = () => musicOn && musicAllowed && !disposed;
   const apply = () => {
     if (master && ctx) master.gain.setTargetAtTime(silent ? 0 : level * 0.8, ctx.currentTime, 0.02);
     // The music has its own bus (so "Sound on" and "Music on" are separate) and fades over a second or two.
-    if (musicMaster && ctx) musicMaster.gain.setTargetAtTime(audible() ? level * 0.8 * MUSIC_LEVEL : 0, ctx.currentTime, 0.6);
+    if (musicMaster && ctx) musicMaster.gain.setTargetAtTime(audible() ? level * 0.8 * MUSIC_LEVEL * musicLevel * 2 : 0, ctx.currentTime, 0.6);
     if (ctx && musicOut && audible() && !timer) { nextBar = Math.max(nextBar, ctx.currentTime + 0.3); timer = window.setInterval(tick, 250); }
   };
   // A look-ahead scheduler: bars are laid down a second before they sound; it stops once the music has faded out.
@@ -810,6 +812,7 @@ export function createOutlawAudio({ volume = 0.7, muted = false } = {}): OutlawA
     setMusic(on) { musicOn = on; apply(); },
     setMusicAllowed(allowed) { musicAllowed = allowed; apply(); },
     setMusicMood(value) { mood = value; },
+    setMusicVolume(value) { musicLevel = Math.max(0, Math.min(1, value)); apply(); },
     dispose() { disposed = true; clearInterval(timer); document.removeEventListener("visibilitychange", onHidden); void ctx?.close(); ctx = null; },
   };
 }

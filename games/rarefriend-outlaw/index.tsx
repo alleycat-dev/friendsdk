@@ -3892,8 +3892,9 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   // Sound (audio.ts): one player for the session, switched on by the first click, tap or key; Settings mutes it or sets its volume.
   const audio = useRef<ReturnType<typeof createOutlawAudio> | null>(null);
   if (!audio.current) audio.current = createOutlawAudio();
-  const [soundOn, setSoundOn] = useState(true), [soundVolume, setSoundVolume] = useState(0.7), [musicOn, setMusicOn] = useState(true);
-  useEffect(() => { audio.current?.setMuted(!soundOn); audio.current?.setVolume(soundVolume); audio.current?.setMusic(musicOn); }, [soundOn, soundVolume, musicOn]);
+  // Music volume 0.5 is the music's designed level; it starts a little under that (0.37, about 2.5 dB quieter).
+  const [soundOn, setSoundOn] = useState(true), [soundVolume, setSoundVolume] = useState(0.7), [musicOn, setMusicOn] = useState(true), [musicVolume, setMusicVolume] = useState(0.37);
+  useEffect(() => { audio.current?.setMuted(!soundOn); audio.current?.setVolume(soundVolume); audio.current?.setMusic(musicOn); audio.current?.setMusicVolume(musicVolume); }, [soundOn, soundVolume, musicOn, musicVolume]);
   // The country's music rests while a hardware wallet is being hacked, and fades back in afterwards.
   useEffect(() => { audio.current?.setMusicAllowed(!wallet); }, [wallet]);
   useEffect(() => () => audio.current?.dispose(), []);
@@ -5719,12 +5720,14 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             asks for reduced motion. The game plays the same either way.</p>
           <h3>Sound</h3>
           <label><input type="checkbox" checked={soundOn} onChange={event => setSoundOn(event.target.checked)} /> Sound on</label>
+          <label className="outlaw-volume">Volume <input type="range" min={0} max={1} step={0.05} value={soundVolume} disabled={!soundOn && !musicOn}
+            onChange={event => setSoundVolume(Number(event.target.value))} aria-label="Overall volume" /></label>
           <label><input type="checkbox" checked={musicOn} onChange={event => setMusicOn(event.target.checked)} /> Music on</label>
-          <label className="outlaw-volume">Volume <input type="range" min={0} max={1} step={0.05} value={soundVolume} disabled={!soundOn}
-            onChange={event => setSoundVolume(Number(event.target.value))} aria-label="Sound volume" /></label>
+          <label className="outlaw-volume">Music volume <input type="range" min={0} max={0.65} step={0.01} value={musicVolume} disabled={!musicOn}
+            onChange={event => setMusicVolume(Number(event.target.value))} aria-label="Music volume" /></label>
           <p>Spaghetti-Western sound effects and a soft Western ambience out in the country ("Lonesome Trail", quiet enough to hear the
             animals; it rests during hacks), all made in code. Sound and music start after your first click, tap or key press, and stop
-            while the game's tab is hidden. The volume sets both.</p>
+            while the game's tab is hidden. Volume sets everything; Music volume sets the music against the sounds.</p>
           <h3>Credits</h3>
           <p><strong>Alley Cat</strong> · Lead Developer</p>
           <p>Built with Claude Code (Anthropic)</p>

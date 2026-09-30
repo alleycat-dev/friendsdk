@@ -1053,8 +1053,8 @@ trumpet line; and **"The Standoff"** while a living outlaw is near (within 600 w
 gallop), ominous at 92 beats a minute over Am - Bb - Am - E (the half-step up to Bb the menace), with a trembling tremolo guitar,
 a low heartbeat, a dark drone, a low, uneasy whistle every other pass and a bell tolling at the end of each. Every string is
 tuned exactly (the plucked-string synthesis is played back a touch faster or slower to land on pitch), and the whistle sings
-clean, separate notes that belong to their chords. Settings has **Music on**, separate from **Sound on**; the volume slider sets
-both.
+clean, separate notes that belong to their chords. Settings has **Music on**, separate from **Sound on**, a **Volume** slider for everything
+and a **Music volume** slider for the music against the sounds (starting a little under its designed level).
 
 Listen without the game: build the practice pages, then open `practice/dist/sounds.html` (buttons for every cue, WAV downloads),
 or render them all to `practice/dist/wav/` with `node games/rarefriend-outlaw/tools/sounds.mjs`, which also prints each cue's
