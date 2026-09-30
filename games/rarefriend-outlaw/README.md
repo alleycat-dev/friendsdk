@@ -139,7 +139,8 @@ changes the rules.
 | Walk against the Centralised Exchange's door | Open the shop (once per visit; step away to re-arm it) |
 | `Q` | Cycle the equipped item through owned items (a note says so when there is nothing to hold) |
 | `I` | Open or close the inventory |
-| `M`, or tap the minimap | Enlarge the minimap over the world, or shrink it back (`Esc` also shrinks it); hover a marker to see what it is |
+| `M`, or the minimap's corner **+** / **−** | Enlarge the minimap over the world, or shrink it back (`Esc` also shrinks it); hover a marker to see what it is |
+| Click or tap the minimap | Walk the Friend there, by a route around whatever is in the way (a red cross marks the destination on the map; the enlarged map closes) |
 | `Space` | Use the equipped item: fire a laser bolt, or throw the Butterfly Net at a nearby butterfly |
 | Hit a hacker with a laser bolt | Wing it, or down it once it has taken its tier's hits (1 to 5), and get the offer to hack its hardware wallet |
 | Walk into an outlaw | It robs you of one item (dropped back into your inventory the moment it is neutralized) |
@@ -713,7 +714,9 @@ for the last ten), and a parked one with its time running shows its seconds over
   a fine dither with no roads, and buildings, the exchange, the pool, the
   puddle, each horse and each hacker only appear once they have been on
   screen (a hacker seen once stays tracked). Discovery resets with the
-  session.
+  session. A click or tap on the map walks the Friend there (`findPath`: A* over a 24-unit grid of the country, straightened
+  so the walk runs in straight lines, stopping at the nearest open spot when the click lands on something solid); its small
+  corner button enlarges or shrinks the map.
 - **Outlaw Points (OP):** the simulated game currency, shown in the HUD
   beside your RF. Cracking a wallet pays OP by tier and stars (see the economy section), downing a bear or
   lion 5, any other animal 1. OP resets with the session and buys the

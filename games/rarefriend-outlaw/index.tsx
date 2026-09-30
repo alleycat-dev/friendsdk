@@ -332,19 +332,25 @@ const vectors: Readonly<Record<SpriteFacing, WorldPoint>> = { up: [0, -1], down:
 /** Cross-tile player movement in projected screen space, like the SDK's movement utility, with axis sliding. */
 function createMovement(start: WorldPoint, canWalk: (point: WorldPoint, radius: number) => boolean) {
   let position: WorldPoint = [...start], facing: SpriteFacing = "down", walking = false, destination: WorldPoint | null = null, factor = 1;
+  // A route (followPath): the waypoints still ahead after `destination`, and where it ends.
+  let waypoints: WorldPoint[] = [], goal: WorldPoint | null = null;
   const held = new Map<string, SpriteFacing>();
-  const stop = () => { held.clear(); destination = null; walking = false; };
+  const stop = () => { held.clear(); destination = null; waypoints = []; goal = null; walking = false; };
   return {
     get state() { return { position: [...position] as WorldPoint, facing, walking, pushing: held.size > 0 }; },
     /** Where a tap sent the Friend, until they arrive or are stopped (null while walking by keys). */
     get destination() { return destination ? [...destination] as WorldPoint : null; },
+    /** Where the current walk ends: the route's last waypoint, or the tapped spot. */
+    get goal() { return goal ? [...goal] as WorldPoint : destination ? [...destination] as WorldPoint : null; },
     setKey(key: string, pressed: boolean) {
       const direction = directions[key.toLowerCase()];
       if (!direction) return false;
-      if (pressed) { destination = null; held.set(key.toLowerCase(), direction); } else held.delete(key.toLowerCase());
+      if (pressed) { destination = null; waypoints = []; goal = null; held.set(key.toLowerCase(), direction); } else held.delete(key.toLowerCase());
       return true;
     },
-    moveTo(point: WorldPoint) { held.clear(); destination = point; },
+    moveTo(point: WorldPoint) { held.clear(); destination = point; waypoints = []; goal = null; },
+    /** Walk a route of waypoints (from findPath), one after another. */
+    followPath(points: readonly WorldPoint[]) { held.clear(); waypoints = points.slice(1).map(point => [...point] as WorldPoint); destination = points[0] ? [...points[0]] as WorldPoint : null; goal = points.length ? [...points[points.length - 1]] as WorldPoint : null; },
     stop,
     setSpeed(next: number) { factor = next; },
     update(deltaMs: number) {
@@ -358,13 +364,18 @@ function createMovement(start: WorldPoint, canWalk: (point: WorldPoint, radius: 
         if (magnitude) { dx /= magnitude; dy /= magnitude; facing = [...inputs].reverse().find(direction => vectors[direction][0] * dx + vectors[direction][1] * dy > 0)!; }
       } else if (destination) {
         const [tx, ty] = project(...destination), far = Math.hypot(tx - sx, ty - sy);
-        if (far < 1.5) destination = null;
+        if (far < 1.5) { destination = waypoints.shift() ?? null; if (!destination) goal = null; }
         else { dx = (tx - sx) / far; dy = (ty - sy) / far; step = Math.min(step, far); facing = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down"); }
       }
       if (step > 0 && (dx || dy)) {
         const next = unproject(sx + dx * step, sy + dy * step);
         if (canWalk(next, RADIUS)) { position = next; walking = true; }
-        else if (destination) destination = null;
+        else if (destination && waypoints.length) {
+          // On a route, a corner clipped by the grid slides along it rather than ending the walk.
+          const slide = [unproject(sx + dx * step, sy), unproject(sx, sy + dy * step)].find(point => canWalk(point, RADIUS));
+          if (slide) { position = slide; walking = true; } else { destination = null; waypoints = []; goal = null; }
+        }
+        else if (destination) { destination = null; goal = null; }
         else if (dx && dy) {
           const slide = [unproject(sx + dx * step, sy), unproject(sx, sy + dy * step)].find(point => canWalk(point, RADIUS));
           if (slide) { position = slide; walking = true; }
@@ -374,6 +385,57 @@ function createMovement(start: WorldPoint, canWalk: (point: WorldPoint, radius: 
       return { position: [...position] as WorldPoint, facing, walking, pushing: held.size > 0 };
     },
   };
+}
+
+/** Route-finding for walks picked on the minimap: A* over a grid of PATH_CELL world units across the whole country, a cell open
+ * when the Friend can stand at its centre, then straightened (a waypoint is skipped whenever the straight walk past it is clear). A
+ * goal inside something solid moves to the nearest open cell. Returns the waypoints (ending at the goal), or null if none is found. */
+const PATH_CELL = 24;
+function findPath(from: WorldPoint, to: WorldPoint, canWalk: (point: WorldPoint, radius: number) => boolean): WorldPoint[] | null {
+  const cols = Math.ceil(WORLD_SIZE.width / PATH_CELL), rows = Math.ceil(WORLD_SIZE.height / PATH_CELL);
+  const open = new Map<number, boolean>(), centre = (cell: number): WorldPoint => [(cell % cols + 0.5) * PATH_CELL, (Math.floor(cell / cols) + 0.5) * PATH_CELL];
+  const free = (cell: number) => { let known = open.get(cell); if (known === undefined) { known = canWalk(centre(cell), RADIUS + 2); open.set(cell, known); } return known; };
+  const cellOf = (point: WorldPoint) => Math.max(0, Math.min(rows - 1, Math.floor(point[1] / PATH_CELL))) * cols + Math.max(0, Math.min(cols - 1, Math.floor(point[0] / PATH_CELL)));
+  // The goal: the tapped spot if the Friend can stand there, else the nearest open cell (searching outward ring by ring).
+  let goal: WorldPoint = [...to], end = cellOf(to);
+  if (!canWalk(to, RADIUS)) {
+    const [gc, gr] = [end % cols, Math.floor(end / cols)]; let found = -1;
+    for (let ring = 1; ring < 20 && found < 0; ring++) for (let dr = -ring; dr <= ring && found < 0; dr++) for (let dc = -ring; dc <= ring; dc++) {
+      if (Math.max(Math.abs(dr), Math.abs(dc)) !== ring) continue;
+      const c = gc + dc, r = gr + dr; if (c < 0 || r < 0 || c >= cols || r >= rows) continue;
+      if (free(r * cols + c)) { found = r * cols + c; break; }
+    }
+    if (found < 0) return null;
+    end = found; goal = centre(found);
+  }
+  const start = cellOf(from);
+  // A*: eight neighbours, a diagonal only when both sides are open (no cutting corners).
+  const g = new Map<number, number>([[start, 0]]), came = new Map<number, number>(), closed = new Set<number>();
+  const h = (cell: number) => { const dc = Math.abs(cell % cols - end % cols), dr = Math.abs(Math.floor(cell / cols) - Math.floor(end / cols)); return Math.max(dc, dr) + 0.414 * Math.min(dc, dr); };
+  const heap: [number, number][] = [[h(start), start]];
+  const push = (item: [number, number]) => { heap.push(item); let i = heap.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
+  const pop = () => { const top = heap[0], last = heap.pop()!; if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
+  let reached = false;
+  while (heap.length) {
+    const [, cell] = pop(); if (closed.has(cell)) continue; closed.add(cell);
+    if (cell === end) { reached = true; break; }
+    const c = cell % cols, r = Math.floor(cell / cols);
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue; const nc = c + dc, nr = r + dr; if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+      const next = nr * cols + nc; if (closed.has(next) || (next !== end && !free(next))) continue;
+      if (dr && dc && (!free(r * cols + nc) || !free(nr * cols + c))) continue;
+      const cost = g.get(cell)! + (dr && dc ? 1.414 : 1);
+      if (cost < (g.get(next) ?? Infinity)) { g.set(next, cost); came.set(next, cell); push([cost + h(next), next]); }
+    }
+  }
+  if (!reached) return null;
+  const cells: number[] = []; for (let cell: number | undefined = end; cell !== undefined && cell !== start; cell = came.get(cell)) cells.push(cell);
+  const points: WorldPoint[] = [...cells.reverse().map(centre)]; points[points.length - 1] = goal;
+  // Straighten: from each kept point, jump to the furthest one a clear straight walk away.
+  const clear = (a: WorldPoint, b: WorldPoint) => { const far = distance(a, b), steps = Math.ceil(far / 8); for (let k = 1; k < steps; k++) if (!canWalk([a[0] + (b[0] - a[0]) * k / steps, a[1] + (b[1] - a[1]) * k / steps], RADIUS + 1)) return false; return true; };
+  const route: WorldPoint[] = []; let here = from, i = 0;
+  while (i < points.length) { let j = points.length - 1; while (j > i && !clear(here, points[j])) j--; route.push(points[j]); here = points[j]; i = j + 1; }
+  return route;
 }
 
 // ---------------------------------------------------------------------------
@@ -2449,11 +2511,13 @@ function drawSignpost(ctx: CanvasRenderingContext2D, x: number, y: number, text:
  * the exchange as black marks, the Mining Pool and the puddle, hackers as red dots (or their hideout), the horse, the current
  * view as an outline and the Friend as a blinking marker. Drawn outdoors only. */
 const MINIMAP = { x: 792, y: 396, w: 156, h: 104 }; // clears the guide line and toasts
-/** The minimap enlarged (M, or a tap on it): centred over the world, same 3:2 shape. */
+/** The minimap enlarged (M, or its corner button): centred over the world, same 3:2 shape. */
 const MINIMAP_BIG = { x: 180, y: 110, w: 600, h: 400 };
 type MapBox = { x: number; y: number; w: number; h: number };
 /** A marker on the minimap and what hovering it says. */
 type MapMark = { x: number; y: number; label: string };
+/** The small button in the map's top-right corner that enlarges it or shrinks it back. */
+const mapToggleBox = (box: MapBox): MapBox => ({ x: box.x + box.w - 16, y: box.y, w: 16, h: 16 });
 const inBox = (box: MapBox, x: number, y: number) => x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
 /** A caption box: white (or light red) with a black frame and bold text, centred on (x, y) and kept inside the view. */
 function drawLabel(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, tone: "plain" | "warn" = "plain") {
@@ -3931,7 +3995,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   const worldScale = useRef(1);
   const mover = useRef<ReturnType<typeof createMovement> | null>(null);
   const camera = useRef<Point>({ x: 0, y: 0 });
-  /** The minimap is enlarged (M, or a tap on it); the pointer's spot over the world canvas in VIEW units, for its captions. */
+  /** The minimap is enlarged (M, or its corner button); the pointer's spot over the world canvas in VIEW units, for its captions. */
   const bigMap = useRef(false), pointer = useRef<Point | null>(null);
   // Pixel-exact world canvas. Stretched by CSS with nearest-neighbour scaling to a size that is not a whole multiple of 960 x 640
   // (the frame shows it at 958 x 638), the browser drops or doubles a few pixel columns and rows, and every line of art that
@@ -4737,7 +4801,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             nearWantedSign.current = distance(state.position, WANTED_SIGN) <= WANTED_SIGN_REACH;
           }
           // Where a tap is taking the Friend, drawn on the ground under everything standing there.
-          const goal = movement.destination;
+          const goal = movement.goal;
           if (goal) { const g = toScreen(goal); layers.push({ depth: goal[0] + goal[1] - 40, draw: () => drawTapMarker(ctx, g.x, g.y, now, live.current.reducedMotion) }); }
           layers.sort((a, b) => a.depth - b.depth).forEach(layer => layer.draw());
           // Hovering a friendly villager, or having just tapped one, explains what it is, over its head.
@@ -4795,11 +4859,24 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             if (live.current.keys.has("datacenter")) for (const npc of npcs.current) if (npc.kind === "outlaw") discovered.current.outlaws.add(npc.id);
             const box = bigMap.current ? MINIMAP_BIG : MINIMAP;
             const marks = drawMinimap(ctx, state.position, npcs.current, horses.current, discovered.current, now, live.current.reducedMotion, box);
-            // Hovering the map names the nearest marker under the pointer.
+            // Where a walk picked on the map (or a tap) ends: a small cross on the map.
+            const walkEnd = movement.goal;
+            if (walkEnd) {
+              const mx = box.x + walkEnd[0] / WORLD_SIZE.width * box.w, my = box.y + walkEnd[1] / WORLD_SIZE.height * box.h;
+              ctx.save(); ctx.lineCap = "round";
+              for (const [width, colour] of [[4, "#fff"], [2, "#d94f3c"]] as const) { ctx.lineWidth = width; ctx.strokeStyle = colour; ctx.beginPath(); ctx.moveTo(mx - 4, my - 4); ctx.lineTo(mx + 4, my + 4); ctx.moveTo(mx + 4, my - 4); ctx.lineTo(mx - 4, my + 4); ctx.stroke(); }
+              ctx.restore();
+            }
+            // The corner button: "+" enlarges the map, "-" shrinks it back.
+            const toggle = mapToggleBox(box);
+            ctx.fillStyle = "#000"; ctx.fillRect(toggle.x, toggle.y, toggle.w, toggle.h); ctx.fillStyle = "#fff"; ctx.fillRect(toggle.x + 1, toggle.y + 1, toggle.w - 2, toggle.h - 2);
+            ctx.fillStyle = "#000"; ctx.fillRect(toggle.x + 4, toggle.y + 7, 8, 2); if (!bigMap.current) ctx.fillRect(toggle.x + 7, toggle.y + 4, 2, 8);
+            // Hovering the map names the nearest marker under the pointer; elsewhere on it, a click walks there.
             const hover = pointer.current;
-            if (hover && inBox(box, hover.x, hover.y)) {
+            if (hover && inBox(toggle, hover.x, hover.y)) drawLabel(ctx, bigMap.current ? "Shrink the map (M)" : "Enlarge the map (M)", toggle.x + toggle.w / 2, toggle.y - 16);
+            else if (hover && inBox(box, hover.x, hover.y)) {
               const nearest = marks.map(mark => ({ mark, far: Math.hypot(mark.x - hover.x, mark.y - hover.y) })).filter(entry => entry.far <= 8).sort((a, b) => a.far - b.far)[0];
-              if (nearest) drawLabel(ctx, nearest.mark.label, nearest.mark.x, nearest.mark.y - 18);
+              drawLabel(ctx, nearest ? `${nearest.mark.label} · click to walk there` : "Click to walk here", nearest ? nearest.mark.x : hover.x, (nearest ? nearest.mark.y : hover.y) - 18);
             }
           }
           // Warning arrows for outlaws (or the building hiding one) that are close but off-screen.
@@ -5532,8 +5609,18 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             // A tap on the wanted signpost's board opens its poster instead of walking there.
             const sign = wantedSignRect.current;
             if (sign && sceneRef.current === "outside" && sx >= sign.x && sx <= sign.x + sign.w && sy >= sign.y && sy <= sign.y + sign.h) { stop(); setViewWanted(true); return; }
-            // A tap on the minimap enlarges it (or shrinks it back) instead of walking there.
-            if (sceneRef.current === "outside" && inBox(bigMap.current ? MINIMAP_BIG : MINIMAP, sx, sy)) { bigMap.current = !bigMap.current; return; }
+            // The map's corner button enlarges it (or shrinks it back); a tap anywhere else on the map walks the Friend there, by a route
+            // around whatever is in the way (and closes the enlarged map, so you watch the walk).
+            if (sceneRef.current === "outside") {
+              const box = bigMap.current ? MINIMAP_BIG : MINIMAP;
+              if (inBox(mapToggleBox(box), sx, sy)) { bigMap.current = !bigMap.current; return; }
+              if (inBox(box, sx, sy)) {
+                const from = mover.current?.state.position, to: WorldPoint = [(sx - box.x) / box.w * WORLD_SIZE.width, (sy - box.y) / box.h * WORLD_SIZE.height];
+                const route = from ? findPath(from, to, sceneWalkable("outside")) : null;
+                if (route) { mover.current?.followPath(route); bigMap.current = false; }
+                return;
+              }
+            }
             mover.current?.moveTo(unproject(camera.current.x + (sx - VIEW.width / 2) / SCALE, camera.current.y + (sy - VIEW.height / 2) / SCALE));
           }} />
         {/* Touch devices only (style.css): the keyboard's Space, Q and R as small buttons left of the minimap, while the country is in play. */}
@@ -5879,7 +5966,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             You can retire at any time from the licence office (the Licence button) or the Data Center's Licence Settlement terminal, and
             settle with the seed words you have recovered so far.</p>
           <h3>Getting around</h3>
-          <p>Walk with WASD or the arrow keys, or tap where to go. I opens the inventory, M the big map, Q switches what you hold, Space
+          <p>Walk with WASD or the arrow keys, or tap where to go (or click a spot on the map). I opens the inventory, M the big map, Q switches what you hold, Space
             uses it (fire the Laser Gun, swing the Butterfly Net or the Cleaver), Esc closes things. Walk into a door to go in, and into a terminal to use it.
             Trojan Horses carry you at twice walking speed: a Temporary one lasts 30 seconds, R dismounts.</p>
           <h3>Outlaws</h3>
