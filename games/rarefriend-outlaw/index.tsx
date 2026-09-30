@@ -5690,8 +5690,9 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           {feedback && !feedback.startsWith("Bought") && <p role="alert">{feedback}</p>}
         </GameMenu>
       )}
-      {/* Hidden while the Cold Wallet's REWARDS frame is open over it (its result page shows once that is collected). */}
-      {menu === "settlement" && snapshot && !coldRewards && (() => {
+      {/* Hidden while the settlement show plays (its result shows only after the show's Continue) and while the Cold Wallet's REWARDS
+          frame is open over it (its result page shows once that is collected). */}
+      {menu === "settlement" && snapshot && !show && !coldRewards && (() => {
         const held = SEED_WORDS.filter(word => seedWords.has(word)), placed = SEED_WORDS.filter(word => phrase.has(word) && seedWords.has(word)), n = placed.length;
         const best = trophies > 0 ? TROPHIES[trophies - 1] : null, preview = headStartFor(n);
         return <GameMenu title="Licence Settlement" onClose={busy ? undefined : () => open(null)}>
