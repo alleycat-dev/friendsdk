@@ -5967,10 +5967,9 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           {client.mode !== "chain" && <p className="outlaw-sim-note">This preview's economy is simulated: RF, the licence payout, OP, keepsakes, horses and the Cold
             Wallet. No real tokens move, and nothing is saved when the page reloads.</p>}
           <h3>The licence</h3>
-          <p>A Bounty Hunter licence ({rf(definition.price)}) starts a run: a Laser Gun with {LASER_CHARGES.toString()} shots and {START_OP} OP.
-            The run ends when The Liquidator's wallet is settled, and then the licence's RF payout is revealed; a failed hack does not end it.
-            You can retire at any time from the licence office (the Licence button) or the Data Center's Licence Settlement terminal, and
-            settle with the seed words you have recovered so far.</p>
+          <p>A Bounty Hunter licence ({rf(definition.price)}) starts a run: you get a Laser Gun with {LASER_CHARGES.toString()} shots and {START_OP} OP.
+            The run ends when the licence's RF payout is revealed at the Licence Settlement terminal in the Data Center, where you can retire
+            at any time.</p>
           <h3>Getting around</h3>
           <p>Walk with WASD or the arrow keys, or tap where to go (or click a spot on the map). I opens the inventory, M the big map, Q switches what you hold, Space
             uses it (fire the Laser Gun, swing the Butterfly Net or the Cleaver), Esc closes things. Walk into a door to go in, and into a terminal to use it.
@@ -5985,19 +5984,22 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             lose it. Left alone, an outlaw gets back up after a minute; once you have taken anything, they stay down. Pumper and Dumper each
             carry half a wallet: combine the halves in your inventory, then hack it.</p>
           <p>The hack is a puzzle: find and break the Secure Chip before your Integrity or trace runs out. The ? button in the hacking game
-            explains every tile. A cracked wallet opens its REWARDS: OP (more for harder wallets and more stars) and sometimes loot. A wiped wallet counts against your run. Either way you are back in front of the Exchange afterwards.</p>
+            explains every tile. A cracked wallet opens its REWARDS: OP (more for harder wallets and more stars) and sometimes loot. A failed
+            hack with a wiped wallet will not end your run but will impact in-game loot. After every hacking game, you are teleported back in
+            front of the Exchange.</p>
           <h3>OP and the buildings</h3>
           <p>OP (Outlaw Points) come from cracked wallets and animals ({OP_BIG_GAME} for a bear or lion, {OP_ANIMAL} for others). They never
             turn into RF. Spend them on reloads at the Charging Station ({RELOAD_OP} OP a shot, up to {LASER_MAX.toString()} in the gun) and
-            on Trojan Horses at the Exchange, which also buys keepsakes for Dust ({DUST_OP} OP each).</p>
+            on Trojan Horses at the Exchange, which also buys keepsakes for Dust ({DUST_OP} OP each). Future updates will bring more uses.</p>
           <h3>Settling your licence</h3>
           <p>When a run ends, or whenever you choose to retire, go to the Data Center: its Licence Settlement terminal settles the licence (its RF payout, rolled by the game's
             table) and takes the seed words you recovered. Each word pays more OP than the one before, gives your next licence a head start
             (Laser shots, Intel, gas vouchers, program cards) and earns a trophy with its hunter title, from the Rookie Trophy to the
             Ultimate Trophy. All twelve words open the Cold Wallet, which holds the Permanent Shiny Golden Trojan Horse. Trophies, the head
-            start and the golden horse carry over to new hunts; seed words never change the RF.</p>
+            start and the golden horse carry over to new hunts; seed words never change the RF reward.</p>
           <p>The Data Center hangs a poster of every outlaw you catch and holds the achievements terminal and the trophy hall. The Cold Storage has the mint
-            terminal and The Vault, where things you store are safe from outlaws. The Mining Farm mines OP for you once you hold its key.</p>
+            terminal (currently not operational) and The Vault, where things you store are safe from outlaws. The Mining Farm mines OP for you
+            once you hold its key. The Data Center key shows you the location of each outlaw on the map.</p>
           <button type="button" onClick={() => open(null)}>Back outside</button>
         </GameMenu>
       )}
