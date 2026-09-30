@@ -5,13 +5,14 @@
 // echo. Like the SDK's sound kit: creating the player makes no AudioContext; `unlock()` must be called from a player gesture;
 // muted, locked or hidden players drop cues instead of queueing them.
 
-export const SOUND_IDS = ["laser", "hoof", "bump", "flip", "strike", "twist", "win"] as const;
+export const SOUND_IDS = ["laser", "hoof", "bump", "showdown", "flip", "strike", "twist", "win"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
 /** What each cue is for, for the preview page and the README. */
 export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   laser: "Laser Gun shot: a pew with a whistling ricochet",
   hoof: "One galloping stride of a riding horse: four hoofbeats, ba-da-da-DUM (played stride after stride)",
   flip: "A hacking-game tile flip: a guitar pluck, stepping through an A-minor scale",
+  showdown: "Tumbleweed time: the first time a new outlaw comes near (as its red arrow appears): wind, a distant bell, a lone whistle and a trembling twang",
   bump: "Walking into an outlaw (who robs you): like walking into something, a body thump and a hollow bonk",
   strike: "Losing Integrity in a hack (a strike-back, a bomb, a bite): an anvil thud under a low twang",
   twist: "A twist striking (RUGPULL!!!): whip crack, a falling whistle and a trembling guitar chord",
@@ -171,6 +172,39 @@ function cue(o: Out, id: SoundId, t: number, options: CueOptions = {}) {
       }
       break;
     }
+    case "showdown": {
+      // The desert goes quiet: a gust of wind rises and falls, dry tumbleweed rustles past, a distant bell tolls once, and a lone
+      // whistle answers over a low, trembling guitar. An original phrase in E minor.
+      const wind = noiseSource(ctx, 4.5), band = ctx.createBiquadFilter(), wg = ctx.createGain();
+      band.type = "bandpass"; band.Q.value = 4;
+      band.frequency.setValueAtTime(380, t); band.frequency.linearRampToValueAtTime(1150, t + 1.6); band.frequency.linearRampToValueAtTime(520, t + 4.3);
+      wg.gain.setValueAtTime(0.0001, t); wg.gain.exponentialRampToValueAtTime(0.16, t + 1.2); wg.gain.setValueAtTime(0.16, t + 2.2); wg.gain.exponentialRampToValueAtTime(0.0001, t + 4.4);
+      wind.connect(band).connect(wg); send(o, wg, 0.2); wind.start(t); wind.stop(t + 4.5);
+      // Tumbleweed: soft, scratchy crackles tumbling by.
+      for (let k = 0; k < 9; k++) {
+        const at = t + 0.5 + k * 0.17 + Math.random() * 0.06, crackle = noiseSource(ctx, 0.05), hp = ctx.createBiquadFilter(), cg = ctx.createGain();
+        hp.type = "highpass"; hp.frequency.value = 2500 + Math.random() * 1500;
+        cg.gain.setValueAtTime(0.0001, at); cg.gain.exponentialRampToValueAtTime(0.045 * (1 - Math.abs(k - 4) / 6), at + 0.004); cg.gain.exponentialRampToValueAtTime(0.0001, at + 0.04);
+        crackle.connect(hp).connect(cg); send(o, cg, 0.1); crackle.start(at); crackle.stop(at + 0.05);
+      }
+      // The distant bell: a low toll with inharmonic partials, mostly reverb.
+      for (const [f, level, ring] of [[196, 0.09, 3.2], [392 * 1.19, 0.05, 2.4], [196 * 2.76, 0.035, 1.8], [196 * 5.4, 0.02, 1.1]] as const) {
+        const bell = ctx.createOscillator(), bg = ctx.createGain();
+        bell.type = "sine"; bell.frequency.value = f;
+        bg.gain.setValueAtTime(0.0001, t + 0.15); bg.gain.exponentialRampToValueAtTime(level, t + 0.17); bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.15 + ring);
+        bell.connect(bg); send(o, bg, 0.9); bell.start(t + 0.15); bell.stop(t + 0.2 + ring);
+      }
+      // The whistle: E5 held, falling to B4; a lift to G5 and F#5; home on E5 with the vibrato swelling.
+      whistle(o, t + 1.2, hz(7), hz(7), 0.7, 0.15);
+      whistle(o, t + 1.9, hz(7), hz(2), 0.45, 0.14);
+      whistle(o, t + 2.45, hz(10), hz(10), 0.22, 0.13);
+      whistle(o, t + 2.68, hz(9), hz(9), 0.22, 0.13);
+      whistle(o, t + 2.92, hz(7), hz(7), 1.3, 0.15);
+      // Under it, the guitar's low E trembling, then left to ring.
+      for (let k = 0; k < 8; k++) pluck(o, t + 1.2 + k * 0.12, hz(-29), 0.2 * (1 - k * 0.08), 0.4, 0.99, 0.4);
+      pluck(o, t + 2.92, hz(-29), 0.3, 1.7, 0.997, 0.5);
+      break;
+    }
     case "flip": {
       // A bright pluck; successive flips walk the A-minor scale, so a run of flips plays a little tune.
       const note = FLIP_SCALE[((options.step ?? 0) % FLIP_SCALE.length + FLIP_SCALE.length) % FLIP_SCALE.length];
@@ -230,7 +264,7 @@ function cue(o: Out, id: SoundId, t: number, options: CueOptions = {}) {
   }
 }
 /** How long each cue rings, in seconds (for rendering previews). */
-export const CUE_SECONDS: Readonly<Record<SoundId, number>> = { laser: 0.7, hoof: 0.45, flip: 1, bump: 0.45, strike: 1.3, twist: 3.6, win: 2.9 };
+export const CUE_SECONDS: Readonly<Record<SoundId, number>> = { laser: 0.7, hoof: 0.45, flip: 1, bump: 0.45, showdown: 4.6, strike: 1.3, twist: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {

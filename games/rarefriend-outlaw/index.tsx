@@ -4075,6 +4075,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
       CRYO_FRIEND_IDS.forEach((id, slot) => void reader.read(id).then(art => { if (!abort.signal.aborted) cryoFriends.current[slot] = art; }, () => { /* the tube stays empty */ }));
     };
     let lastHoof = 0;
+    /** Outlaws already met in this country (for the showdown cue). */
+    const met = new Set<string>();
     let cancelled = false, frame = 0, previous = 0, lastDebug = 0, shopLatch = false, terminalLatch = false, lastPoster = -1, side: "left" | "right" = "right", doorCooldown = 0;
     const enterBuilding = (kind: BuildingKind, now: number) => {
       const mount = ridden(); if (mount) {
@@ -4622,6 +4624,10 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
             if (npc.kind !== "outlaw") continue;
             const spot = interior ? (here(npc) ? npc.position : null) : outlawSpot(npc);
             if (!spot || distance(spot, state.position) > WARN_RANGE) continue;
+            // The first time a new outlaw comes this near (as its red arrow would appear): tumbleweed time, the showdown cue. Once per
+            // outlaw (Pumper and Dumper share theirs) in each fresh country.
+            const meeting = PAIR.includes(npc.name ?? "") ? "Pumper & Dumper" : npc.name ?? "";
+            if (active && !met.has(meeting)) { met.add(meeting); audio.current?.play("showdown"); }
             const at = toScreen(spot);
             if (!onScreen(at, 0)) drawWarningArrow(ctx, at, pulse);
           }
