@@ -2684,8 +2684,7 @@ function drawEquipped(ctx: CanvasRenderingContext2D, item: ItemId, x: number, y:
   else if (side === "left") { ctx.translate(Math.round(x) - 34, Math.round(y) - 36); ctx.scale(-1, 1); }
   else ctx.translate(Math.round(x) + 34, Math.round(y) - 36);
   const px = (dx: number, dy: number, w: number, h: number) => ctx.fillRect(dx, dy, w, h);
-  // A white backing lifts the held item off busy ground; the Laser Gun is drawn without one.
-  if (item !== "laser") { ctx.fillStyle = "#fff"; px(-3, -3, 26, 22); }
+  // Held items are drawn without a white backing (like everything else in the world): their black outlines sit on the ground.
   if (item === "laser") { if (gear["gun-skin"] === "liquidator-gun") drawLiquidatorGun(ctx); else drawLaserPistol(ctx); }
   else if (item === "cleaver" && gear["cleaver-skin"] === "diamond-cleaver") drawDiamondCleaver(ctx);
   // The horse icon: never held any more (a Temporary Trojan Horse is mounted from the inventory), kept for a future trophy.
@@ -2697,9 +2696,11 @@ function drawEquipped(ctx: CanvasRenderingContext2D, item: ItemId, x: number, y:
     ctx.fillStyle = "#d0d0d0"; px(10, 1, 11, 11);
     ctx.fillStyle = "#000"; px(17, 3, 2, 2);
   } else {
-    // The Butterfly Net: a wooden handle, a metal hoop holding the net's mouth, and a bag of fine mesh hanging from it.
-    ctx.fillStyle = "#000"; px(0, 8, 12, 5);
-    ctx.fillStyle = "#9a6a38"; px(1, 9, 10, 3); ctx.fillStyle = "#6e4520"; px(3, 10, 2, 1); px(7, 9, 2, 1);
+    // The Butterfly Net: a long wooden handle, a metal hoop holding the net's mouth, and a bag of fine mesh hanging from it.
+    ctx.fillStyle = "#000"; px(0, 8, 18, 5);
+    ctx.fillStyle = "#9a6a38"; px(1, 9, 16, 3); ctx.fillStyle = "#6e4520"; px(3, 10, 2, 1); px(8, 9, 2, 1); px(13, 10, 2, 1);
+    // The hoop and bag sit past the end of the handle (1.5 times the length it had).
+    ctx.translate(6, 0);
     // The mesh bag, below and beyond the hoop: fine light crosshatch inside a thin grey outline.
     ctx.save(); ctx.beginPath(); ctx.moveTo(13, 4); ctx.quadraticCurveTo(24, 9, 21, 19); ctx.quadraticCurveTo(15, 18, 13, 13); ctx.closePath();
     ctx.fillStyle = "#f4f6f8"; ctx.fill(); ctx.clip();
