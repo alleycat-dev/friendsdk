@@ -7,7 +7,8 @@
 
 export const SOUND_IDS = ["laser", "hoof", "step", "bump", "showdown", "down", "flip", "smash", "strike", "twist", "wipe", "win",
   "meow", "bark", "moo", "oink", "crow", "cluck", "chirp", "caw", "ribbit", "snort", "thump", "boom", "hiss", "slither", "flutter", "buzz",
-  "roar", "growl", "yip", "dragon", "wail"] as const;
+  "roar", "growl", "yip", "dragon", "wail",
+  "lock", "coins", "trophy", "vault", "tick", "drumroll", "land", "tumbleweed", "sparks", "fireworks", "fanfare"] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
 /** What each cue is for, for the preview page and the README. */
 export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
@@ -43,6 +44,17 @@ export const SOUND_CUES: Readonly<Record<SoundId, string>> = {
   growl: "Bear: a deep growl",
   yip: "Golden Fox: a high, raspy yelp",
   dragon: "Dragon: a huge roar and a whoosh of fire",
+  lock: "Settlement: a seed word locking into the vault door, a heavy clunk and a chime (a note higher for every word: `step`)",
+  coins: "Settlement: coins pouring into the sack and a cash-register bell",
+  trophy: "Settlement: a bright bell as a trophy is earned",
+  vault: "Settlement: all twelve words, the vault door opens: gears grinding, steam hissing and a golden swell",
+  tick: "Settlement: one peg of the Wheel of Fortune clicking past the pointer",
+  drumroll: "Settlement: a snare drum roll building while the wheel spins",
+  land: "Settlement: the wheel lands, a brass stab and a cymbal",
+  tumbleweed: "Settlement, an empty payout: a gust of wind and a sad, falling harmonica",
+  sparks: "Settlement, a small payout: a crackle of sparks and a bright strum",
+  fireworks: "Settlement, a big payout: a rocket whistling up and bursting",
+  fanfare: "Settlement, a Vault or Jackpot payout: a full mariachi fanfare with a ringing bell",
   wail: "A shot animal's pained cry, in its own voice (`species`: rabbit, deer, cow, pig, ostrich, snake, lion, bear or dragon)",
 };
 
@@ -507,6 +519,96 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
       }
       break;
     }
+    // ----- The licence settlement show -----
+    case "lock": {
+      // A heavy clunk of the bolt, a metallic ring, and a chime one step up the scale for every word locked in.
+      thud(o, t, 60, 0.35);
+      noiseBand(o, t, 0.05, "bandpass", 1400, 900, 2, 0.14, 0.002, 0.1);
+      for (const [f, level] of [[820, 0.03], [1330, 0.02]] as const) { const ring = ctx.createOscillator(), rg = ctx.createGain(); ring.type = "sine"; ring.frequency.value = f;
+        rg.gain.setValueAtTime(level, t); rg.gain.exponentialRampToValueAtTime(0.0001, t + 0.5); ring.connect(rg); send(o, rg, 0.4); ring.start(t); ring.stop(t + 0.55); }
+      const note = FLIP_SCALE[Math.max(0, Math.min(FLIP_SCALE.length - 1, options.step ?? 0))] + 12, chime = ctx.createOscillator(), cg = ctx.createGain();
+      chime.type = "sine"; chime.frequency.value = hz(note);
+      cg.gain.setValueAtTime(0.0001, t + 0.08); cg.gain.exponentialRampToValueAtTime(0.07, t + 0.09); cg.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+      chime.connect(cg); send(o, cg, 0.6); chime.start(t + 0.08); chime.stop(t + 1.25);
+      break;
+    }
+    case "coins": {
+      for (let k = 0; k < 9; k++) { const at = t + k * 0.05 + Math.random() * 0.03, ping = ctx.createOscillator(), pg = ctx.createGain(), f = 2800 + Math.random() * 2400;
+        ping.type = "sine"; ping.frequency.value = f; pg.gain.setValueAtTime(0.0001, at); pg.gain.exponentialRampToValueAtTime(0.03, at + 0.003); pg.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
+        ping.connect(pg); send(o, pg, 0.3); ping.start(at); ping.stop(at + 0.2); }
+      for (const f of [2637, 3951]) { const bell = ctx.createOscillator(), bg = ctx.createGain(); bell.type = "sine"; bell.frequency.value = f;
+        bg.gain.setValueAtTime(0.0001, t + 0.45); bg.gain.exponentialRampToValueAtTime(0.045, t + 0.46); bg.gain.exponentialRampToValueAtTime(0.0001, t + 1.1); bell.connect(bg); send(o, bg, 0.4); bell.start(t + 0.45); bell.stop(t + 1.15); }
+      break;
+    }
+    case "trophy": {
+      for (const [f, level, ring] of [[1318.5, 0.07, 1.8], [1318.5 * 2.01, 0.03, 1.2], [1318.5 * 3.2, 0.015, 0.8]] as const) { const bell = ctx.createOscillator(), bg = ctx.createGain(); bell.type = "sine"; bell.frequency.value = f;
+        bg.gain.setValueAtTime(0.0001, t); bg.gain.exponentialRampToValueAtTime(level, t + 0.005); bg.gain.exponentialRampToValueAtTime(0.0001, t + ring); bell.connect(bg); send(o, bg, 0.6); bell.start(t); bell.stop(t + ring + 0.05); }
+      break;
+    }
+    case "vault": {
+      // Gears grinding as the bolts draw back, steam hissing out, and a golden chord swelling as the door swings open.
+      const grind = noiseBand(o, t, 1.1, "bandpass", 260, 420, 3, 0.16, 0.1, 0.2);
+      const shake = ctx.createOscillator(), depth = ctx.createGain(); shake.frequency.value = 17; depth.gain.value = 0.08; shake.connect(depth).connect(grind.gain); shake.start(t); shake.stop(t + 1.1);
+      noiseBand(o, t + 0.7, 1.3, "highpass", 3000, 5000, 0.7, 0.09, 0.2, 0.3);
+      for (const note of [-12, -5, 0, 4, 7]) { const pad = ctx.createOscillator(), lp = ctx.createBiquadFilter(), pg = ctx.createGain();
+        pad.type = "sawtooth"; pad.frequency.value = hz(note); lp.type = "lowpass"; lp.frequency.setValueAtTime(400, t + 1); lp.frequency.exponentialRampToValueAtTime(3200, t + 2.2);
+        pg.gain.setValueAtTime(0.0001, t + 1); pg.gain.exponentialRampToValueAtTime(0.03, t + 1.6); pg.gain.exponentialRampToValueAtTime(0.0001, t + 2.6);
+        pad.connect(lp).connect(pg); send(o, pg, 0.6); pad.start(t + 1); pad.stop(t + 2.65); }
+      break;
+    }
+    case "tick": {
+      noiseBand(o, t, 0.02, "highpass", 3500, 4000, 1, 0.06, 0.001, 0);
+      woodBlock(o, t, 1500, 0.05);
+      break;
+    }
+    case "drumroll": {
+      // A snare roll, quick strokes growing from soft to loud over the spin.
+      const seconds = 4.6;
+      for (let at = 0, k = 0; at < seconds; at += 0.034 + Math.random() * 0.006, k++) {
+        const level = 0.012 + 0.05 * (at / seconds) ** 1.5 * (k % 2 ? 0.8 : 1);
+        noiseBand(o, t + at, 0.05, "bandpass", 2600, 2200, 1.2, level, 0.002, 0.2);
+      }
+      break;
+    }
+    case "land": {
+      trumpet(o, t, hz(-12), 0.35, 0.06); trumpet(o, t, hz(-5), 0.35, 0.05); trumpet(o, t, hz(0), 0.35, 0.05);
+      thud(o, t, 70, 0.3);
+      noiseBand(o, t, 1.4, "highpass", 5000, 7000, 0.7, 0.06, 0.003, 0.5);
+      break;
+    }
+    case "tumbleweed": {
+      // A lonely gust of wind, and a harmonica sighing down: nothing this time.
+      noiseBand(o, t, 3.2, "bandpass", 400, 900, 3, 0.1, 1, 0.3);
+      for (const [at, from, to, len] of [[0.4, 4, 4, 0.45], [0.9, 2, 2, 0.45], [1.4, 0, -2, 1.4]] as const)
+        voice(o, t + at, { seconds: len, gain: 0.12, wave: "square", breath: 0.35, attack: 0.04, release: len * 0.5, pitch: [[0, hz(from)], [len, hz(to)]],
+          formants: [{ f: [[0, 900], [len, 800]], q: 3, gain: 1 }, { f: [[0, 2000], [len, 1800]], q: 4, gain: 0.4 }], reverb: 0.4 });
+      break;
+    }
+    case "sparks": {
+      for (let k = 0; k < 14; k++) noiseBand(o, t + Math.random() * 0.5, 0.02, "highpass", 4000 + Math.random() * 3000, 6000, 1, 0.04, 0.001, 0.1);
+      strum(o, t + 0.05, [-12, -5, 0, 4, 7], 0.1, 0.012, 1.2);
+      break;
+    }
+    case "fireworks": {
+      // A rocket whistling up, then the burst: a crack, a boom and a crackling tail.
+      const rocket = ctx.createOscillator(), rg = ctx.createGain();
+      rocket.type = "sine"; rocket.frequency.setValueAtTime(700, t); rocket.frequency.exponentialRampToValueAtTime(2600, t + 0.6);
+      rg.gain.setValueAtTime(0.0001, t); rg.gain.exponentialRampToValueAtTime(0.03, t + 0.1); rg.gain.exponentialRampToValueAtTime(0.0001, t + 0.62);
+      rocket.connect(rg); send(o, rg, 0.2); rocket.start(t); rocket.stop(t + 0.65);
+      noiseBand(o, t + 0.62, 0.3, "lowpass", 3000, 600, 0.7, 0.25, 0.003, 0.5);
+      thud(o, t + 0.62, 55, 0.3);
+      for (let k = 0; k < 16; k++) noiseBand(o, t + 0.75 + Math.random() * 1.1, 0.015, "highpass", 5000, 7000, 1, 0.025, 0.001, 0.2);
+      break;
+    }
+    case "fanfare": {
+      // The mariachi flourish, a bright bell ringing out over it.
+      const phrase: [number, number, number, number][] = [[0, -8, 0, 0.12], [4, -5, 0.13, 0.12], [7, 0, 0.26, 0.12], [12, 4, 0.39, 0.3], [7, 0, 0.72, 0.12], [12, 4, 0.85, 0.9]];
+      for (const [lead, second, at, len] of phrase) { trumpet(o, t + at, hz(lead), len, 0.08); trumpet(o, t + at, hz(second), len, 0.05); }
+      strum(o, t + 0.85, [-24, -17, -12, -8, -5, 0], 0.13, 0.02, 2);
+      for (const f of [2637, 3951, 5274]) { const bell = ctx.createOscillator(), bg = ctx.createGain(); bell.type = "sine"; bell.frequency.value = f;
+        bg.gain.setValueAtTime(0.0001, t + 0.85); bg.gain.exponentialRampToValueAtTime(0.03, t + 0.86); bg.gain.exponentialRampToValueAtTime(0.0001, t + 2.4); bell.connect(bg); send(o, bg, 0.5); bell.start(t + 0.85); bell.stop(t + 2.45); }
+      break;
+    }
     case "flip": {
       // A computer bleep: a plain square wave with a soft sine under it, on for a moment and off, square-edged like an old terminal's
       // beep, dry. Its note is the chain's size on the scale (`step`), an octave up, so it rises only when the chain grows and
@@ -630,7 +732,7 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
 /** How long each cue rings, in seconds (for rendering previews). */
 export const CUE_SECONDS: Readonly<Record<SoundId, number>> = {
   meow: 1, caw: 1.1, bark: 0.85, moo: 1.8, oink: 0.8, crow: 1.7, cluck: 1.2, chirp: 0.7, ribbit: 0.6, snort: 0.4, thump: 0.6, boom: 2.2, hiss: 1.2,
-  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, down: 1.6, smash: 1.4, strike: 1.3, twist: 3, wipe: 3.6, win: 2.9 };
+  slither: 0.6, flutter: 0.5, buzz: 1.1, roar: 2.2, growl: 1.4, yip: 0.6, dragon: 2.6, wail: 1.6, lock: 1.4, coins: 1.2, trophy: 2, vault: 2.6, tick: 0.08, drumroll: 4.8, land: 1.6, tumbleweed: 3.4, sparks: 1.4, fireworks: 2.2, fanfare: 3, laser: 1.3, hoof: 0.5, flip: 0.15, step: 0.15, bump: 0.45, showdown: 4.6, down: 1.6, smash: 1.4, strike: 1.3, twist: 3, wipe: 3.6, win: 2.9 };
 
 /** The spring reverb: a short, bright, metallic tail (noise with a fast decay and a little flutter), like a guitar amp's spring. */
 function springImpulse(ctx: BaseAudioContext) {

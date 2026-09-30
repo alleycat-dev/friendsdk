@@ -873,6 +873,17 @@ game reloads.
 
 ### Settling a licence: seed words, trophies and the Cold Wallet
 
+**The settlement show** (`settlement.tsx`): settling plays a short finale in three acts over the game, skippable with a click
+(then Continue). 1. **The Seed Phrase Lock**: the words handed in fly one by one into a vault door's ring of twelve slots, each
+locking with a clunk and a chime a note higher than the last, its lamp lighting gold; OP counts up with a shower of coins and a
+bell rings for each trophy earned. With all twelve the handle turns, gears grind, steam hisses and the door swings open on golden
+light ("THE COLD WALLET OPENS"). 2. **The Wheel of Fortune**: seven wedges sized by the payout table's real odds (Empty half the
+wheel, the Jackpot a gold sliver) spin under a snare roll, a click for every peg, slowing to land on the payout the SDK already
+rolled (the wheel reveals it, it decides nothing), with a brass stab. 3. **The celebration**, by payout: a tumbleweed rolling past
+to a sad harmonica for nothing; sparks and a strum for Dust or Coins; confetti and a "ta-da" for a Stack; fireworks for a Cache;
+and for a Vault or Jackpot a gold flash, a screen shake, a fireworks show, raining coins and a mariachi fanfare. Under reduced
+motion each act shows its end state (no flying, spinning or shaking), with the sounds. The Cold Wallet's rewards open after it.
+
 A run ends when The Liquidator's wallet is settled, or when you retire, which you can do any time (wiped wallets are counted but
 never end a run): Retire now in
 the licence office, or straight at the terminal below, which then offers **Retire and settle the licence** with the seed words you

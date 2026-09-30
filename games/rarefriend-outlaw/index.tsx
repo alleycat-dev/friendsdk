@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameComponentProps } from "@rarefriends/friendsdk/runtime";
 import {
   getWorldPreset, validateWorld, project, unproject, isWorldWalkable, renderProp, renderWorldLayers,
@@ -13,7 +13,8 @@ import { rollKeepsake, PERK_TEXT } from "./loot";
 import { RewardsFrame, RARITY_COLOUR, type LootRarity, type RewardItem } from "./rewards";
 import { TROPHIES, drawTrophy } from "./trophies";
 import { PLAYTEST } from "./playtest";
-import { createOutlawAudio, type MusicMood, type SoundId } from "./audio";
+import { createOutlawAudio, type CueOptions, type MusicMood, type SoundId } from "./audio";
+import { SettlementShow, type SettlementShowData } from "./settlement";
 import { COSMETICS, COSMETIC_IDS, SLOT_ACTION, cosmeticForKeepsake, drawGearBehind, drawGearFront, drawLiquidatorGun, drawDiamondCleaver, drawPet, diplomaBitmap, type CosmeticId, type Gear } from "./cosmetics";
 import { GameMenu } from "@rarefriends/friendsdk/frame";
 import { RF, maximumPrize, type GameSnapshot } from "@rarefriends/friendsdk/game";
@@ -4030,6 +4031,10 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
   const goldenRef = useRef(false); goldenRef.current = goldenHorse;
   /** The Cold Wallet's REWARDS frame, open after a twelve-word settlement. */
   const [coldRewards, setColdRewards] = useState<readonly RewardItem[] | null>(null);
+  /** The settlement show (settlement.tsx), playing over the game once a licence is settled; the Cold Wallet's frame waits for it. */
+  const [show, setShow] = useState<SettlementShowData | null>(null);
+  /** The payout the last settle rolled (its index in the table), for the show's wheel. */
+  const lastPayout = useRef<{ index: number; reward: bigint } | null>(null);
   /** What is stored in The Vault (Cold Storage, bottom-right room). */
   const [vault, setVault] = useState<VaultStore>(EMPTY_VAULT);
   const [perks, setPerks] = useState<readonly KeepsakePerk[]>([]);
@@ -5159,7 +5164,14 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
       if (!hadGolden) { setGoldenHorse(true); horses.current = [...horses.current, newHorse("golden", goldenSpot())]; }
     }
     setSettled({ words: n, op, head, trophies: earned, cold, hadGolden }); setSettling(null); setPhrase(new Set());
+    // The finale: the words into the vault door, the Wheel of Fortune landing on the payout just rolled, and its celebration.
+    const payout = lastPayout.current;
+    if (payout) setShow({ words, op, cold, trophies: earned.map(index => ({ at: index + 1, name: TROPHIES[index].name })),
+      outcomes: definition.outcomes.map(outcome => ({ name: outcome.name, chanceBps: outcome.chanceBps })), outcome: payout.index,
+      reward: payout.reward > 0n ? `+${rf(payout.reward)}, kept in your inventory to redeem` : "no RF this time" });
   }
+  /** Sounds for the settlement show (a stable function, so the show does not restart on every render). */
+  const playCue = useCallback((id: SoundId, options?: CueOptions) => { audio.current?.play(id, options); }, []);
   /** Use the licence and settle it: its play rolls the RF payout (kept in your inventory to redeem). A play already made but not settled
    * (a reload in between) is settled instead of using another licence, so one licence always pays out exactly once. */
   async function revealPayout(reason: string): Promise<boolean> {
@@ -5168,6 +5180,7 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
       let id = fresh.plays.find(play => play.outcomeId === null)?.id;
       if (id === undefined) { if (fresh.consumables === 0n) throw new Error("No licence to settle."); id = (await client.play(1n))[0].id; }
       const done = await client.settle(id), outcome = definition.outcomes[(done.outcomeId ?? 1) - 1];
+      lastPayout.current = { index: (done.outcomeId ?? 1) - 1, reward: outcome.reward };
       setSnapshot(await client.read());
       setRunEnd({ reason, outcome: outcome.name, reward: outcome.reward });
       setStats(value => ({ ...value, biggest: outcome.reward > value.biggest ? outcome.reward : value.biggest }));
@@ -5683,7 +5696,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
           <button type="button" disabled={busy} onClick={() => open(null)}>Close</button>
         </GameMenu>;
       })()}
-      {coldRewards && <RewardsFrame items={coldRewards} jackpot outlaw="The Cold Wallet" subtitle="The Cold Wallet opens: all twelve seed words" still={reducedMotion} onClose={() => setColdRewards(null)} />}
+      {show && <SettlementShow data={show} still={reducedMotion} play={playCue} onDone={() => setShow(null)} />}
+      {coldRewards && !show && <RewardsFrame items={coldRewards} jackpot outlaw="The Cold Wallet" subtitle="The Cold Wallet opens: all twelve seed words" still={reducedMotion} onClose={() => setColdRewards(null)} />}
       {menu === "vault" && snapshot && (() => {
         // Both sides of The Vault as rows: what you carry (Store) and what is put away (Take).
         type Row = { key: string; name: string; detail: string; entry: VaultEntry };
