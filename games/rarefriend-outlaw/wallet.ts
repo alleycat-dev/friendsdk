@@ -684,7 +684,7 @@ function afterMove(state: WalletState, index: number): WalletState {
     // The Flash Crash: the move just made has entered the crash (the lettering fires once), or ended it.
     if (flashCrashing(s) && flashLeft(s) === FLASH.lasts) { s.text += " FLASH CRASH: Power 1, strike-backs and bites doubled for two moves."; fire(s, "crash", "FLASH CRASH!!!", "For the next two moves, Power is set to 1 and hit and bite damage is doubled"); }
     else if (crashed && !flashCrashing(s)) s.text += " The market recovers.";
-    if (equityOf(s) <= EQUITY.margin && s.sales < EQUITY.sales) fire(s, "margin", "MARGIN CALL!!!", "Right-click a program to sell it for Equity");
+    if (equityOf(s) <= EQUITY.margin && s.sales < EQUITY.sales) fire(s, "margin", "MARGIN CALL!!!", "Right-click or tap and hold a program to sell it for Equity");
     if (equityOf(s) > EQUITY.forced) s.forcedArmed = true;
     else if (s.forcedArmed && s.forced < EQUITY.forcedTimes) {
       s.forcedArmed = false; s.forced += 1;

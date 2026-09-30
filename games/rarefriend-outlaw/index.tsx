@@ -687,6 +687,8 @@ const ANIMAL_LOOPS: Partial<Readonly<Record<AnimalId, { cue: SoundId; every: num
 /** At most this many animal calls start in any one second, however big the crowd. */
 const MAX_CALLS_PER_SECOND = 5;
 const HEAR_RANGE = 520; // world units: animals further away are not heard
+/** How long a touch on a program slot must be held to act like a right-click (sell under a margin call, otherwise discard). */
+const HOLD_MS = 500;
 /** Time between footsteps while walking (not riding). */
 const STEP_MS = 330;
 /** The music turns to The Standoff when a living outlaw comes this near, and back once it is further than MUSIC_CALM. */
@@ -3129,7 +3131,7 @@ function WalletHelp({ tier, onClose }: { tier: WalletState["tier"]; onClose: () 
       +{tier.blockReward} Integrity. Only the longest chain counts. Beaten Defenders count.</p>
     <p>On the board you'll find Readings to help you navigate, Defenders, Attackers and The Virus to make your life difficult, and Programs that
       help you. More detail can be found in the sections below.</p>
-    <p>Keyboard: arrows or WASD move the cursor. Enter or Space flips or attacks. 1-{tier.slots} runs a Program; right-click a slot to discard
+    <p>Keyboard: arrows or WASD move the cursor. Enter or Space flips or attacks. 1-{tier.slots} runs a Program; right-click (or tap and hold) a slot to discard
       or sell (special situations){tier.twist === "frontrun" ? ". G toggles priority gas" : ""}. Esc puts a Program away or gives up.</p>
     {groups.map(group => <section key={group.title}>
       <h3>{group.title}</h3>
@@ -3706,7 +3708,7 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
       const slotHovered = slotBoxes.current.findIndex(box => hx >= box.x && hx <= box.x + box.w && hy >= box.y && hy <= box.y + box.h);
       const slotId = slotHovered >= 0 ? current.slots[slotHovered] : undefined;
       const hoverText = slotHovered >= 0
-        ? (slotId ? `${PROGRAMS[slotId].name}: ${PROGRAMS[slotId].rule} Click or press ${slotHovered + 1} to run${PROGRAMS[slotId].target ? ", then click a tile" : ""}; right-click to ${marginCallOpen(current) ? `sell it for +${Math.round(EQUITY.sale * 100)}% Equity (margin call)` : "discard"}.` : `Empty program slot ${slotHovered + 1}. Programs you find on the board load here.`)
+        ? (slotId ? `${PROGRAMS[slotId].name}: ${PROGRAMS[slotId].rule} Click or press ${slotHovered + 1} to run${PROGRAMS[slotId].target ? ", then click a tile" : ""}; right-click (or tap and hold) to ${marginCallOpen(current) ? `sell it for +${Math.round(EQUITY.sale * 100)}% Equity (margin call)` : "discard"}.` : `Empty program slot ${slotHovered + 1}. Programs you find on the board load here.`)
         : hovered >= 0 && hovered < tiles.length ? walletTileHelp(current, hovered) : "";
       // The hover panel is HTML over the canvas: text drawn into the scaled, pixelated canvas lost rows and looked cropped.
       const tip = tipRef.current, shown = hoverText && current.phase === "open" ? hoverText : "";
@@ -3729,6 +3731,8 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
     return () => { cancelAnimationFrame(frame); observer?.disconnect(); };
   }, [size, name, pyramid]);
   const open = wallet !== "probing" && wallet.phase === "open";
+  /** A program slot being held on a touch screen (tap and hold = right-click). */
+  const holding = useRef<{ slot: number; timer: number; done: boolean } | null>(null);
   return <div className="outlaw-wallet">
     <canvas ref={canvasRef} width={VIEW.width} height={VIEW.height} aria-label="Hack the Hardware Wallet"
       onPointerMove={event => { hover.current = pointerAt(event); }}
@@ -3736,10 +3740,27 @@ export function WalletOverlay({ wallet, name, busy, reducedMotion, onAct, onClos
       onPointerDown={event => {
         if (event.button !== 0) return;
         const { index, x, y } = pointerAt(event), slot = slotBoxes.current.findIndex(box => x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h);
+        // On a touch screen a program slot waits: a tap runs it, holding it (HOLD_MS) does what a right-click does, selling it under a
+        // margin call and otherwise discarding it.
+        if (open && slot >= 0 && event.pointerType !== "mouse") {
+          event.preventDefault();
+          const sell = marginCallOpen(wallet);
+          const timer = window.setTimeout(() => { if (holding.current) holding.current.done = true; onAct(sell ? { type: "sell", slot } : { type: "discard", slot }); }, HOLD_MS);
+          holding.current = { slot, timer, done: false };
+          return;
+        }
         if (open && slot >= 0) { onAct({ type: "run", slot }); return; }
         if (open && index >= 0) onAct({ type: "act", index });
       }}
+      onPointerUp={() => {
+        const held = holding.current; if (!held) return;
+        clearTimeout(held.timer); holding.current = null;
+        if (!held.done && open) onAct({ type: "run", slot: held.slot });
+      }}
+      onPointerCancel={() => { if (holding.current) { clearTimeout(holding.current.timer); holding.current = null; } }}
       onContextMenu={event => {
+        // A touch hold is handled above (some browsers also raise a context menu for it).
+        if (holding.current || event.nativeEvent instanceof PointerEvent && event.nativeEvent.pointerType === "touch") { event.preventDefault(); return; }
         // Right-click a program slot to discard its program.
         const { x, y } = pointerAt(event), slot = slotBoxes.current.findIndex(box => x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h);
         // Under a margin call the right-click sells the program instead.

@@ -71,7 +71,8 @@ and `npx friendsdk test ./games/rarefriend-outlaw` (pass).
 - No saves: the game lives in memory, so a reload loses the run's progress (an unused licence, or one waiting to reveal its
   payout, is recovered by the licence office).
 - Touch: walking (tap), menus, the minimap, posters and the whole hacking game work by tap, and on touch screens small **Use**,
-  **Switch** and **Dismount** buttons (left of the minimap) stand in for Space, Q and R.
+  **Switch** and **Dismount** buttons (left of the minimap) stand in for Space, Q and R. In the hacking game, **tap and hold** a
+  program slot (half a second) for what a right-click does: sell it under a margin call, discard it otherwise.
 - Minting at the Cold Storage terminal is a selection screen only; nothing is minted yet.
 - No audio, so no mute control is needed yet.
 - The licence is 20 RF rather than the planned 100 RF, so it can be bought with the SDK preview wallet's 20 RF.
