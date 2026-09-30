@@ -599,21 +599,21 @@ function cue(base: Out, id: SoundId, t: number, options: CueOptions = {}) {
         drum.connect(dg); send(o, dg, 0.5); drum.start(t + at); drum.stop(t + at + 1.5);
         thud(o, t + at, hz(note), level * 0.8);
       };
-      stab(0, [-12, -24 + 12], 0.16, 0.055); timpani(0, -36, 0.2);
-      stab(0.24, [-12, -24 + 12], 0.16, 0.055); timpani(0.24, -36, 0.18);
-      stab(0.52, [-11, -8, -5], 1.9, 0.05); timpani(0.52, -35, 0.26);
-      for (let k = 0; k < 18; k++) strum(o, t + 0.55 + k * 0.08, [-23, -20, -17], 0.035 * (1 - k / 22), 0.004, 0.3);
-      noiseBand(o, t + 0.1, 0.9, "highpass", 4000, 7000, 0.7, 0.04, 0.8, 0.6);
+      stab(0, [-12, -24 + 12], 0.16, 0.039); timpani(0, -36, 0.14);
+      stab(0.24, [-12, -24 + 12], 0.16, 0.039); timpani(0.24, -36, 0.13);
+      stab(0.52, [-11, -8, -5], 1.9, 0.035); timpani(0.52, -35, 0.18);
+      for (let k = 0; k < 18; k++) strum(o, t + 0.55 + k * 0.08, [-23, -20, -17], 0.025 * (1 - k / 22), 0.004, 0.3);
+      noiseBand(o, t + 0.1, 0.9, "highpass", 4000, 7000, 0.7, 0.028, 0.8, 0.6);
       break;
     }
     case "wipe": {
       // The stinger: a whip crack, the falling "wah-wah" whistle, and an A-minor chord trembling on the strings.
-      whip(o, t, 0.55);
-      whistle(o, t + 0.12, hz(12), hz(7), 0.5, 0.17);   // A5 down to E5
-      whistle(o, t + 0.66, hz(7), hz(0), 0.75, 0.17);   // E5 down to A4
+      whip(o, t, 0.38);
+      whistle(o, t + 0.12, hz(12), hz(7), 0.5, 0.12);   // A5 down to E5
+      whistle(o, t + 0.66, hz(7), hz(0), 0.75, 0.12);   // E5 down to A4
       const chord = [-24, -17, -12, -9, -5]; // A2 E3 A3 C4 E4
-      for (let k = 0; k < 10; k++) strum(o, t + 0.2 + k * 0.11, chord, 0.13 * (1 - k * 0.07), 0.006, 0.5);
-      pluck(o, t + 1.3, hz(-24), 0.45, 2.2, 0.998, 0.6); // the low A left ringing
+      for (let k = 0; k < 10; k++) strum(o, t + 0.2 + k * 0.11, chord, 0.09 * (1 - k * 0.07), 0.006, 0.5);
+      pluck(o, t + 1.3, hz(-24), 0.32, 2.2, 0.998, 0.6); // the low A left ringing
       break;
     }
     case "win": {
