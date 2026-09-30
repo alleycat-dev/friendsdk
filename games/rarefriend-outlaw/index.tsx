@@ -5034,14 +5034,19 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
     if (run) {
       const lost = run.lost + (next.phase === "won" ? 0 : 1), level = outlawLevel(current.npcId === COMBINED_ID ? "Pumper" : current.name);
       if (lost !== run.lost) setRun({ ...run, lost });
-      if (level >= LIQUIDATOR_LEVEL) void endRun("The Liquidator's wallet is settled: the country is clean.", { ...run, lost });
+      if (level >= LIQUIDATOR_LEVEL) {
+        // The last wallet: the board itself says where to go next.
+        setWallet(value => value && value.state !== "probing" ? { ...value, state: { ...value.state, text: `${value.state.text} Your run is over: settle your licence at the Data Center's Licence Settlement terminal.` } } : value);
+        void endRun("The Liquidator's wallet is settled: the country is clean.", { ...run, lost });
+      }
     }
   }
   function closeWallet() {
     setBriefing(false);
     const finished = !!wallet && wallet.state !== "probing" && wallet.state.phase !== "open";
     // A finished hack already sent you home (walletAct), while the board still covered the country.
-    setWallet(null); setNote(finished ? "Back at the Centralised Exchange." : ""); setHaul(null); setRewardsOpen(false);
+    // A finished run points to the Licence Settlement rather than just saying where you are.
+    setWallet(null); setNote(!finished ? "" : settling ? "Run over: settle your licence at the Data Center's Licence Settlement terminal (its top-right room). The friendly locals point the way." : "Back at the Centralised Exchange."); setHaul(null); setRewardsOpen(false);
     // A run that just ended shows its payout once the board is closed.
     if ((settling || runEnd) && !run) open("licence");
   }
