@@ -766,13 +766,13 @@ const PERMANENT_HORSE_OP = 150, TEMP_HORSE_OP = 10, HORSE_TEMP_MS = 30_000, WILD
  * Charging Station's terminal reloads it, one more consumable per RF, up to LASER_MAX charges in the gun. */
 /** The Bounty Hunter licence (the game's one SDK consumable, one per run) comes with a Laser Gun of LASER_CHARGES shots; the
  * Charging Station tops it up for RELOAD_OP OP a shot, up to LASER_MAX. */
-const LASER_CHARGES = 20n, LASER_MAX = 50n, RELOAD_OP = 1;
+const LASER_CHARGES = 25n, LASER_MAX = 50n, RELOAD_OP = 1;
 /** A run ends when The Liquidator's wallet is settled, or whenever you choose to retire and settle with the seed words you hold; wiped
  * wallets are counted but never end it. A cracked wallet is a jackpot wallet with JACKPOT_WALLET_CHANCE: double OP, a second loot
  * roll and the better keepsake odds. */
 const JACKPOT_WALLET_CHANCE = 0.05, LIQUIDATOR_LEVEL = 11;
 /** OP every run starts with, on top of whatever you hold. */
-const START_OP = 20;
+const START_OP = 25;
 const ITEMS: readonly Item[] = [
   { id: "laser", name: "Laser Gun", price: 0n, blurb: `Comes with your Bounty Hunter licence: ${LASER_CHARGES} shots. Reload at the Charging Station for OP.`, sold: false },
   // The Butterfly Net is not for sale: any outlaw drops one NET_DROP_CHANCE of the time when neutralized (simulated, durable).
@@ -2400,11 +2400,15 @@ const HORSE_ROWS = { side: shadeRows(HORSE_MASK), south: shadeRows(HORSE_SOUTH_M
 /** A Trojan Horse on the ground or under the Friend. A temporary one starts its 30 seconds the first time it is ridden (`expiresAt`). */
 /** A Trojan Horse: a temporary one (30 seconds of riding), the permanent brown one, or the Permanent Shiny Golden Trojan Horse from
  * the Cold Wallet (yours for good: it carries over to every new hunt). */
-type Horse = { id: number; kind: "permanent" | "temporary" | "golden"; position: WorldPoint; facing: SpriteFacing; mounted: boolean; cooldown: number; expiresAt: number | null };
+type Horse = { id: number; kind: "permanent" | "temporary" | "golden"; position: WorldPoint; facing: SpriteFacing; mounted: boolean; cooldown: number; expiresAt: number | null; starter?: boolean };
 let horseSerial = 0;
 const newHorse = (kind: Horse["kind"], position: WorldPoint): Horse => ({ id: ++horseSerial, kind, position, facing: "right", mounted: false, cooldown: 0, expiresAt: null });
 /** The temporary horses a fresh world starts with: at random walkable spots, well away from the start. */
-const wildHorses = (golden = false): Horse[] => [...(PLAYTEST_START_HORSE ? [newHorse("permanent", startHorseSpot())] : []), ...(golden ? [newHorse("golden", goldenSpot())] : []), ...Array.from({ length: WILD_TEMP_HORSES }, () => newHorse("temporary", randomWalkable(spawn, 260)))];
+/** The starter horse: once per game, a Temporary Trojan Horse waits beside the exchange (where a permanent horse starts), and mounting
+ * it the first time explains the horses (STARTER_HORSE_NOTE). */
+const starterHorse = (): Horse => ({ ...newHorse("temporary", PLAYTEST_START_HORSE ? horseBeside(spawn) : startHorseSpot()), starter: true });
+const STARTER_HORSE_NOTE = "You have just mounted a temporary Trojan Horse. It will run fast for 30 seconds and then disappear. Temporary mounts as well as permanent mounts can be bought in the Centralised Exchange. They also occasionally drop in game or can be found in the wild.";
+const wildHorses = (golden = false): Horse[] => [starterHorse(), ...(PLAYTEST_START_HORSE ? [newHorse("permanent", startHorseSpot())] : []), ...(golden ? [newHorse("golden", goldenSpot())] : []), ...Array.from({ length: WILD_TEMP_HORSES }, () => newHorse("temporary", randomWalkable(spawn, 260)))];
 /** The horse's drawing for a facing, split into what goes behind the rider and what goes in front of them. */
 function horseLayers(ctx: CanvasRenderingContext2D, facing: SpriteFacing, x: number, y: number, mounted: boolean, kind: Horse["kind"] = "temporary") {
   const { tint, accent } = HORSE_COLOURS[kind];
@@ -4989,7 +4993,8 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
                 const fresh = near.kind === "temporary" && near.expiresAt === null;
                 if (fresh) near.expiresAt = now + HORSE_TEMP_MS;
                 const left = near.expiresAt === null ? 0 : Math.max(1, Math.ceil((near.expiresAt - now) / 1000));
-                setNote(near.kind === "golden" ? "You mount your Shiny Golden Trojan Horse. Press R to dismount."
+                setNote(near.starter && fresh ? STARTER_HORSE_NOTE
+                  : near.kind === "golden" ? "You mount your Shiny Golden Trojan Horse. Press R to dismount."
                   : near.kind === "permanent" ? "You mount your Trojan Horse. Press R to dismount."
                   : fresh ? "You mount a Temporary Trojan Horse: 30 seconds of riding. Press R to dismount."
                   : `You mount the Temporary Trojan Horse again: ${left} s of riding left. Press R to dismount.`);

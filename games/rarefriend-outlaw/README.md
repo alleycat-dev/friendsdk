@@ -740,6 +740,10 @@ for the last ten), and a parked one with its time running shows its seconds over
   - **Wild temporary horses:** two stand at random walkable spots in every
     fresh world. Walk into one to ride it; its 30 seconds start then and it
     vanishes when it is up. They never go into the inventory.
+  - **Starter horse:** once per game, a third wild temporary horse waits beside the Centralised Exchange (where a permanent
+    horse starts). Mounting it the first time explains the horses: "You have just mounted a temporary Trojan Horse. It will run
+    fast for 30 seconds and then disappear. Temporary mounts as well as permanent mounts can be bought in the Centralised
+    Exchange. They also occasionally drop in game or can be found in the wild."
   The canvas exposes `data-horses` (every horse's id, kind, position,
   whether ridden and when it expires) for checks.
 - **Held items follow your facing:** the equipped item is drawn beside the
@@ -929,7 +933,7 @@ consumable is the **Bounty Hunter licence** (`game.json`, 20 RF while testing: t
 holds exactly 20 RF, so a 100 RF licence could not be bought in preview). A licence is one **run**:
 
 - **Start.** On load the licence office opens. Buying a licence is one runtime confirmation ("Buy bounty
-  hunter licence"); the office closes and the run starts with a Laser Gun of 20 shots and 20 OP. Nothing in the run asks
+  hunter licence"); the office closes and the run starts with a Laser Gun of 25 shots and 25 OP. Nothing in the run asks
   again. A licence you already hold (bought but not yet used) starts a run without buying.
 - **During the run.** Shots, reloads (1 OP a shot at the Charging Station, up to 50), horses and wallets are all
   in-game, with no dialogs. Cracked wallets pay OP and loot, never RF.
