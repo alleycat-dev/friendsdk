@@ -5493,29 +5493,32 @@ export default function RarefriendOutlaw({ friendId, client, paused }: GameCompo
         const stolen = npcs.current.find(entry => entry.id === prompt.npcId)?.loot ?? [];
         const droppedKeepsake = npcs.current.find(entry => entry.id === prompt.npcId)?.keepsake;
         const net = npcs.current.find(entry => entry.id === prompt.npcId)?.net;
+        // Impounded belongings go straight to your inventory and leave the list (like stolen items); a list with nothing left says so.
+        const keepsakeLeft = droppedKeepsake && !droppedKeepsake.taken, netLeft = net === "waiting", combine = Boolean(belongings.half && halves.top && halves.bottom);
+        const anything = keepsakeLeft || netLeft || stolen.length > 0 || belongings.wallet || combine;
         return <GameMenu title={prompt.npcId === COMBINED_ID ? "Hardware Wallet combined" : `${prompt.name} is neutralized!`} onClose={prompt.step === "list" ? leaveWallet : prompt.step === "exited" ? () => setPrompt(null) : undefined}>
           {prompt.step === "list" && <>
-            <p>Among {prompt.name === "Mrs. Sybil" ? "her" : "his"} belongings you find the following items:</p>
+            <p>{anything ? `Among ${prompt.name === "Mrs. Sybil" ? "her" : "his"} belongings you find the following items:` : `There is nothing left among ${prompt.name === "Mrs. Sybil" ? "her" : "his"} belongings.`}</p>
             {/* Each belonging in its colour, as on the REWARDS frame: the keepsake in its rarity's, stolen items in grey, the hardware wallet
                 in red (unique). */}
-            {droppedKeepsake && <div className="outlaw-item outlaw-rarity" style={{ ["--rarity" as string]: RARITY_COLOUR[KEEPSAKE_RARITY[droppedKeepsake.roll.rarity]] }}>
+            {droppedKeepsake && keepsakeLeft && <div className="outlaw-item outlaw-rarity" style={{ ["--rarity" as string]: RARITY_COLOUR[KEEPSAKE_RARITY[droppedKeepsake.roll.rarity]] }}>
               <span><strong>{droppedKeepsake.roll.name}</strong> <em className="outlaw-rarity-tag">{droppedKeepsake.roll.rarity}</em>
                 <small>Keepsake{droppedKeepsake.roll.detail ? ` · ${droppedKeepsake.roll.detail}` : ""}</small></span>
-              <button type="button" className="rf-frame-primary" disabled={droppedKeepsake.taken} onClick={() => impound("keepsake")}>{droppedKeepsake.taken ? "Impounded" : "Impound"}</button></div>}
-            {net && <div className="outlaw-item outlaw-rarity" style={{ ["--rarity" as string]: RARITY_COLOUR[KEEPSAKE_RARITY.Uncommon] }}>
+              <button type="button" className="rf-frame-primary" onClick={() => impound("keepsake")}>Impound</button></div>}
+            {netLeft && <div className="outlaw-item outlaw-rarity" style={{ ["--rarity" as string]: RARITY_COLOUR[KEEPSAKE_RARITY.Uncommon] }}>
               <span><strong>Butterfly Net</strong> <em className="outlaw-rarity-tag">Uncommon</em><small>Swing it next to a butterfly to catch it</small></span>
-              <button type="button" className="rf-frame-primary" disabled={net === "taken"} onClick={() => impound("net")}>{net === "taken" ? "Impounded" : "Impound"}</button></div>}
+              <button type="button" className="rf-frame-primary" onClick={() => impound("net")}>Impound</button></div>}
             {/* What it stole from you, one row each, in grey. */}
             {stolen.map((item, index) => <div key={`${item}-${index}`} className="outlaw-item outlaw-rarity" style={{ ["--rarity" as string]: STOLEN_COLOUR }}>
               <span><strong>{ITEMS.find(entry => entry.id === item)?.name ?? lootName(item)}</strong> <em className="outlaw-rarity-tag">Stolen Item</em>
                 <small>Yours: it robbed you of it</small></span>
               <button type="button" className="rf-frame-primary" onClick={() => impound({ stolen: index })}>Impound</button></div>)}
             {/* Last: impounding the wallet trips its kill switch and ends this list, so everything else comes first. */}
-            <div className="outlaw-item outlaw-rarity" style={{ ["--rarity" as string]: UNIQUE_COLOUR }}>
+            {belongings.wallet && <div className="outlaw-item outlaw-rarity" style={{ ["--rarity" as string]: UNIQUE_COLOUR }}>
               <span><strong>{belongings.half ? `${belongings.half === "top" ? "Top" : "Bottom"} Hardware Wallet` : "Hardware Wallet"}</strong> <em className="outlaw-rarity-tag">Unique</em>
                 <small>{belongings.half ? `Not hackable on its own. ${belongings.half === "top" ? "Dumper" : "Pumper"} has the other half.` : "Impounding it trips its kill switch: you hack it on the spot."}</small></span>
-              <button type="button" className="rf-frame-primary" disabled={!belongings.wallet} onClick={() => impound("wallet")}>{belongings.wallet ? "Impound" : "Impounded"}</button></div>
-            {belongings.half && halves.top && halves.bottom && <div className="outlaw-item"><span><strong>Both halves impounded</strong><small>Put the wallet back together to hack it.</small></span>
+              <button type="button" className="rf-frame-primary" onClick={() => impound("wallet")}>Impound</button></div>}
+            {combine && <div className="outlaw-item"><span><strong>Both halves impounded</strong><small>Put the wallet back together to hack it.</small></span>
               <button type="button" className="rf-frame-primary" onClick={combineHalves}>Combine</button></div>}
             <button type="button" className="outlaw-leave" onClick={leaveWallet}>Leave it {"·"} Esc</button>
           </>}
