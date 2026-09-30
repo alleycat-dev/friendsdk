@@ -611,7 +611,7 @@ type SeedWord = typeof SEED_WORDS[number];
 const CARD_PROGRAMS = ["rollback", "ico", "flashloan", "lowentropy", "multisig", "staking", "explorer"] as const;
 type BuildingKey = "datacenter" | "miningfarm";
 /** Playtesting: building keys every new game starts with (empty in the released game). */
-const PLAYTEST_START_KEYS: readonly BuildingKey[] = ["datacenter"];
+const PLAYTEST_START_KEYS: readonly BuildingKey[] = [];
 const BUILDING_KEYS: Readonly<Record<BuildingKey, { name: string; text: string }>> = {
   datacenter: { name: "Data Center key", text: "The server room is yours: every wanted outlaw shows on your map from now on." },
   miningfarm: { name: "Mining Farm key", text: "The racks mine for you: 1 OP every 30 s, up to 60, collected when you walk into the Mining Farm." },
@@ -667,7 +667,7 @@ type RunEnd = { reason: string; outcome: string; reward: bigint };
  * moment it is first ridden, and WILD_TEMP_HORSES of them stand somewhere in every fresh world, to ride but never to pocket. */
 /** Playtesting: true starts every new game with the Permanent Trojan Horse, owned and waiting left of the start (startHorseSpot);
  * false (the released game) makes it a PERMANENT_HORSE_OP purchase at the Exchange. */
-const PLAYTEST_START_HORSE = true;
+const PLAYTEST_START_HORSE = false;
 /** Each animal's call (audio.ts) and how often each animal of that kind calls (ms, a random time in the range, on its own timer):
  * only animals within HEAR_RANGE are heard, quieter with distance and panned to their side of the screen. The dragon roars as it
  * breathes fire instead. */
@@ -722,7 +722,7 @@ const startOwned: Owned = { "butterfly-net": 0, cleaver: 0, "temp-horse": 0 };
 /** Playtesting (remove before release: set false): every new game starts with everything you can wear, hold or ride: every cosmetic
  * keepsake (hats, masks, apron, hoodie, cape, shoes, off-hand items, the gun and cleaver skins, both pets and the diploma), the
  * Butterfly Net, the Cleaver, three Temporary Trojan Horses and the Shiny Golden Trojan Horse. */
-const PLAYTEST_ALL_GEAR = true;
+const PLAYTEST_ALL_GEAR = false;
 const playtestOwned: Owned = { "butterfly-net": 1, cleaver: 1, "temp-horse": 3 };
 /** Every cosmetic keepsake, as a row of the inventory: found in the KEEPSAKES.md table by name. */
 const playtestKeepsakes = (): OwnedKeepsake[] => Object.values(COSMETICS).flatMap(cosmetic => {

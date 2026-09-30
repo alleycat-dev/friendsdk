@@ -74,7 +74,7 @@ and `npx friendsdk test ./games/rarefriend-outlaw` (pass).
   **Switch** and **Dismount** buttons (left of the minimap) stand in for Space, Q and R. In the hacking game, **tap and hold** a
   program slot (half a second) for what a right-click does: sell it under a margin call, discard it otherwise.
 - Minting at the Cold Storage terminal is a selection screen only; nothing is minted yet.
-- No audio, so no mute control is needed yet.
+- Sound and music are synthesized in code; Settings has **Sound on** and **Music on** switches (the mute controls) and volume sliders.
 - The licence is 20 RF rather than the planned 100 RF, so it can be bought with the SDK preview wallet's 20 RF.
 - Capability gaps for a live version: the SDK bridge has one consumable at one price, so OP, reloads, horses and all loot stay
   simulated, and a live run would need saving outside game memory.
@@ -1024,7 +1024,7 @@ page with bundler-style imports:
 npx tsc -p games/rarefriend-outlaw/tsconfig.json
 ```
 
-## Sound (work in progress, `sound` branch)
+## Sound and music
 
 Spaghetti-Western sound effects, all synthesized in code with the Web Audio API in `audio.ts` (no recordings or samples): a
 plucked, twangy guitar string (Karplus-Strong), a whistle with vibrato, a whip crack, wood-block hoofbeats, a mariachi trumpet and
@@ -1168,8 +1168,7 @@ footprints; NPCs use their own radius. The canvas exposes `data-*` attributes
   so roughly 78 MB) plus the SVGs of the next ring are held at once thanks to
   streaming; the world grid is a constant
   (`GRID`) if it needs tuning. All 81 tile definitions are validated at load.
-- **Not yet implemented:** audio (so there is nothing to mute) and NPC
-  dialogue. The terrain is the SDK's garden preset and generated garden-style
+- **Not yet implemented:** NPC dialogue. The terrain is the SDK's garden preset and generated garden-style
   tiles, recoloured in Western tones. NPC randomness is browser randomness and
   presentation only; the SDK ledger decides every RF outcome.
 - An owned hardwired Generations NFT is still required to reach the
